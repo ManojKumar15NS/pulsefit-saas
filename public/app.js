@@ -194,9 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const height = parseFloat(clientHeightInput.value) / 100;
     const weight = parseFloat(clientWeightInput.value);
     if (height > 0 && weight > 0) {
-      clientBmiInput.value = (weight / (height * height)).toFixed(1);
-    } else {
-      clientBmiInput.value = '';
+      const calcBmi = (weight / (height * height)).toFixed(1);
+      if (!clientBmiInput.value) {
+        clientBmiInput.value = calcBmi;
+      }
+      updateBmiCategoryLabel(calcBmi);
     }
   }
   if (clientHeightInput && clientWeightInput) {
@@ -608,7 +610,6 @@ document.addEventListener('DOMContentLoaded', () => {
     else label.textContent = 'Obese';
   }
 
-  const clientBmiInput = document.getElementById('clientBmi');
   if (clientBmiInput) {
     clientBmiInput.addEventListener('input', (e) => {
       updateBmiCategoryLabel(e.target.value);
