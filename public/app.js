@@ -674,6 +674,8 @@ document.addEventListener('DOMContentLoaded', () => {
       end_date: document.getElementById('clientEndDate').value || null,
       preferred_days: currentFormSelectedDays.join(',') || null,
       preferred_time: document.getElementById('clientPreferredTime').value || null,
+      target_weight: parseFloat(document.getElementById('clientTargetWeight').value || 0),
+      notes: document.getElementById('clientNotes').value || null,
       phone: document.getElementById('clientPhone').value,
       email: document.getElementById('clientEmail').value,
       join_date: document.getElementById('clientJoinDate').value,
@@ -829,6 +831,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('clientVisceralFat').value = client.visceral_fat || '';
     document.getElementById('clientMuscleMass').value = client.muscle_mass || '';
     document.getElementById('clientWaterLevel').value = client.water_level || '';
+    document.getElementById('clientTargetWeight').value = client.target_weight || '';
+    document.getElementById('clientNotes').value = client.notes || '';
     document.getElementById('clientPhone').value = client.phone;
     document.getElementById('clientEmail').value = client.email;
     document.getElementById('clientJoinDate').value = client.join_date;

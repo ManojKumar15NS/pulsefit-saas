@@ -182,6 +182,8 @@ const dbGet = async (query, params = []) => {
       await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS end_date VARCHAR(50)");
       await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS preferred_days VARCHAR(100)");
       await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS preferred_time VARCHAR(50)");
+      await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS target_weight REAL DEFAULT 0.0");
+      await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS notes TEXT");
       
       // Update sessions table
       await dbRun("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS session_date VARCHAR(50)");
@@ -442,7 +444,8 @@ app.post('/api/clients', async (req, res) => {
   try {
     const { 
       name, age, gender, height, weight, body_fat, medical_conditions, fitness_goal, phone, email, join_date, status,
-      bmi, visceral_fat, muscle_mass, water_level, package_type, amount_paid, start_date, end_date, preferred_days, preferred_time
+      bmi, visceral_fat, muscle_mass, water_level, package_type, amount_paid, start_date, end_date, preferred_days, preferred_time,
+      target_weight, notes
     } = req.body;
 
     const heightInMeters = parseFloat(height) / 100;
@@ -451,14 +454,16 @@ app.post('/api/clients', async (req, res) => {
     const result = await dbRun(
       `INSERT INTO clients (
         name, age, gender, height, weight, body_fat, bmi, medical_conditions, fitness_goal, phone, email, status, join_date, trainer_id,
-        visceral_fat, muscle_mass, water_level, package_type, amount_paid, start_date, end_date, preferred_days, preferred_time
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        visceral_fat, muscle_mass, water_level, package_type, amount_paid, start_date, end_date, preferred_days, preferred_time,
+        target_weight, notes
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         name, parseInt(age), gender, parseFloat(height), parseFloat(weight), parseFloat(body_fat), parseFloat(computedBmi), 
         medical_conditions, fitness_goal, phone, email, status || 'active', join_date, req.trainerId,
         parseFloat(visceral_fat || 0), parseFloat(muscle_mass || 0), parseFloat(water_level || 0),
         package_type || null, amount_paid ? parseFloat(amount_paid) : 0, 
-        start_date || null, end_date || null, preferred_days || null, preferred_time || null
+        start_date || null, end_date || null, preferred_days || null, preferred_time || null,
+        parseFloat(target_weight || 0), notes || null
       ]
     );
 
@@ -488,7 +493,8 @@ app.put('/api/clients/:id', async (req, res) => {
 
     const { 
       name, age, gender, height, weight, body_fat, medical_conditions, fitness_goal, phone, email, status, join_date,
-      bmi, visceral_fat, muscle_mass, water_level, package_type, amount_paid, start_date, end_date, preferred_days, preferred_time
+      bmi, visceral_fat, muscle_mass, water_level, package_type, amount_paid, start_date, end_date, preferred_days, preferred_time,
+      target_weight, notes
     } = req.body;
 
     const heightInMeters = parseFloat(height) / 100;
@@ -497,7 +503,8 @@ app.put('/api/clients/:id', async (req, res) => {
     await dbRun(
       `UPDATE clients SET 
         name = ?, age = ?, gender = ?, height = ?, weight = ?, body_fat = ?, bmi = ?, medical_conditions = ?, fitness_goal = ?, phone = ?, email = ?, status = ?, join_date = ?,
-        visceral_fat = ?, muscle_mass = ?, water_level = ?, package_type = ?, amount_paid = ?, start_date = ?, end_date = ?, preferred_days = ?, preferred_time = ?
+        visceral_fat = ?, muscle_mass = ?, water_level = ?, package_type = ?, amount_paid = ?, start_date = ?, end_date = ?, preferred_days = ?, preferred_time = ?,
+        target_weight = ?, notes = ?
        WHERE id = ? AND trainer_id = ?`,
       [
         name, parseInt(age), gender, parseFloat(height), parseFloat(weight), parseFloat(body_fat), parseFloat(computedBmi), 
@@ -505,6 +512,7 @@ app.put('/api/clients/:id', async (req, res) => {
         parseFloat(visceral_fat || 0), parseFloat(muscle_mass || 0), parseFloat(water_level || 0),
         package_type || null, amount_paid ? parseFloat(amount_paid) : 0, 
         start_date || null, end_date || null, preferred_days || null, preferred_time || null,
+        parseFloat(target_weight || 0), notes || null,
         req.params.id, req.trainerId
       ]
     );
