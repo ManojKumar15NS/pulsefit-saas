@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- 1. GLOBAL STATE & THEME INITIALIZATION ---
   let allClients = [];
   let currentWeekOffset = 0; // Offset in weeks from current week
+  let selectedMobileDay = new Date().getDay() === 0 ? 7 : new Date().getDay(); // Default 1-7 Mon-Sun
   let weightChart = null;
   let fatChart = null;
   let goalChart = null;
@@ -170,6 +171,17 @@ document.addEventListener('DOMContentLoaded', () => {
     tab.addEventListener('click', (e) => {
       e.preventDefault();
       switchTab(tab.getAttribute('data-tab'));
+    });
+  });
+
+  // Wire Mobile Day Selector buttons
+  document.querySelectorAll('.mobile-day-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const btnTarget = e.currentTarget;
+      selectedMobileDay = parseInt(btnTarget.getAttribute('data-day'));
+      document.querySelectorAll('.mobile-day-btn').forEach(b => b.classList.remove('active'));
+      btnTarget.classList.add('active');
+      renderMobileCalendarList();
     });
   });
 
@@ -1135,6 +1147,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         subtext.textContent = d.getDate() + '/' + (d.getMonth() + 1);
 
+        // Populate mobile dates too!
+        const mobSubtext = document.getElementById('mobDate' + i);
+        if (mobSubtext) {
+          mobSubtext.textContent = d.getDate() + '/' + (d.getMonth() + 1);
+        }
+
         if (dStr === todayStr) {
           headerCell.classList.add('current-day');
         } else {
@@ -1231,9 +1249,77 @@ document.addEventListener('DOMContentLoaded', () => {
         timetableBody.appendChild(tr);
       }
 
+      // Also render the mobile list
+      renderMobileCalendarList();
+
       lucide.createIcons();
     } catch (err) {
       console.error(err);
+    }
+  }
+
+  // Mobile Agenda View List Renderer
+  function renderMobileCalendarList() {
+    const mobileSessionsList = document.getElementById('mobileSessionsList');
+    if (!mobileSessionsList) return;
+
+    const daySessions = calendarSessionsCache.filter(s => s.day_of_week == selectedMobileDay)
+      .sort((a, b) => a.session_time.localeCompare(b.session_time));
+
+    const todayDayOfWeek = new Date().getDay();
+    const currentDayIndex = todayDayOfWeek === 0 ? 7 : todayDayOfWeek;
+    const currentHour = new Date().getHours();
+    const currentMinute = new Date().getMinutes();
+
+    if (daySessions.length === 0) {
+      mobileSessionsList.innerHTML = `
+        <div style="text-align:center; padding:40px 20px; color:var(--text-muted);">
+          <i data-lucide="calendar-x" style="width:36px; height:36px; margin-bottom:10px; opacity:0.5;"></i>
+          <p style="font-size:13.5px;">No sessions scheduled for this day.</p>
+        </div>
+      `;
+      lucide.createIcons();
+    } else {
+      mobileSessionsList.innerHTML = daySessions.map(s => {
+        const initials = s.client_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        const colorIndex = s.client_id % 6;
+        
+        let statusClass = 'status-upcoming';
+        if (s.day_of_week < currentDayIndex) {
+          statusClass = 'status-completed';
+        } else if (s.day_of_week == currentDayIndex) {
+          const sHour = parseInt(s.session_time.split(':')[0]);
+          const sMin = parseInt(s.session_time.split(':')[1]);
+          if (sHour < currentHour || (sHour === currentHour && sMin <= currentMinute)) {
+            statusClass = 'status-completed';
+          }
+        }
+        if (s.notes && (s.notes.toLowerCase().includes('missed') || s.notes.toLowerCase().includes('injury'))) {
+          statusClass = 'status-missed';
+        }
+
+        const hour = parseInt(s.session_time.split(':')[0]);
+        const mins = s.session_time.split(':')[1];
+        const ampm = hour < 12 ? 'AM' : 'PM';
+        let displayHour = hour % 12;
+        if (displayHour === 0) displayHour = 12;
+        const time12h = displayHour + ':' + mins + ' ' + ampm;
+
+        return `
+          <div class="mobile-session-list-item card-theme-${colorIndex} ${statusClass}" onclick="event.stopPropagation(); viewSessionDetails(${JSON.stringify(s).replace(/"/g, '&quot;')}, '${statusClass}')">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div class="card-avatar-initials" style="background:rgba(255,255,255,0.25); color:#ffffff; font-weight:700; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px;">${initials}</div>
+              <div>
+                <h4 style="color:#ffffff; font-size:14px; font-weight:700; margin:0;">${s.client_name}</h4>
+                <p style="color:rgba(255,255,255,0.85); font-size:11.5px; margin:4px 0 0 0;">${s.notes || 'Workout Session'}</p>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge" style="background:rgba(255,255,255,0.2); color:#ffffff; font-size:11px; padding:3px 8px; border-radius:6px; font-weight:600;">${time12h}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
     }
   }
 

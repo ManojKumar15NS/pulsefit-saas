@@ -378,6 +378,22 @@
               </tbody>
             </table>
           </div>
+
+          <!-- Mobile-Optimized Agenda View (Single-day selector + list) -->
+          <div class="mobile-timetable-view">
+            <div class="mobile-day-selector">
+              <button type="button" class="mobile-day-btn active" data-day="1">Mon <span class="mobile-day-date" id="mobDate1"></span></button>
+              <button type="button" class="mobile-day-btn" data-day="2">Tue <span class="mobile-day-date" id="mobDate2"></span></button>
+              <button type="button" class="mobile-day-btn" data-day="3">Wed <span class="mobile-day-date" id="mobDate3"></span></button>
+              <button type="button" class="mobile-day-btn" data-day="4">Thu <span class="mobile-day-date" id="mobDate4"></span></button>
+              <button type="button" class="mobile-day-btn" data-day="5">Fri <span class="mobile-day-date" id="mobDate5"></span></button>
+              <button type="button" class="mobile-day-btn" data-day="6">Sat <span class="mobile-day-date" id="mobDate6"></span></button>
+              <button type="button" class="mobile-day-btn" data-day="7">Sun <span class="mobile-day-date" id="mobDate7"></span></button>
+            </div>
+            <div class="mobile-sessions-list" id="mobileSessionsList">
+              <!-- Dynamically populated vertical session list -->
+            </div>
+          </div>
         </div>
       </section>
 
