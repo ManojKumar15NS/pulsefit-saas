@@ -1236,6 +1236,14 @@ body {
 }
 
 /* Custom Responsive Mobile Overrides */
+/* Availability Bar Layout */
+.availability-bar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 768px) {
   .search-bar-wrapper {
     flex-direction: column !important;
@@ -1272,6 +1280,36 @@ body {
 }
 
 @media (max-width: 480px) {
+  /* Reduce Card Padding to prevent screen overflow */
+  .card {
+    padding: 16px !important;
+  }
+
+  /* Timetable Header Controls Vertical Stack */
+  .timetable-header-controls {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  #timetableWeekRange {
+    text-align: center !important;
+    font-size: 16px !important;
+    margin: 4px 0 !important;
+  }
+  .timetable-header-controls button {
+    width: 100% !important;
+  }
+  .timetable-header-controls div {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+
+  .availability-bar {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
   .welcome-stats-row {
     grid-template-columns: 1fr !important;
     gap: 8px !important;
@@ -1370,6 +1408,10 @@ body {
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-left: 4px solid transparent;
+  }
+  .mobile-session-list-item:not([class*="card-theme-"]) {
+    background: var(--bg-card);
   }
   .mobile-session-list-item:hover {
     transform: translateY(-2px);
