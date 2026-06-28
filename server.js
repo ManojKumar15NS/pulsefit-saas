@@ -185,6 +185,11 @@ const dbGet = async (query, params = []) => {
       await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS target_weight REAL DEFAULT 0.0");
       await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS notes TEXT");
       
+      // Update progress_logs table
+      await dbRun("ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS visceral_fat REAL DEFAULT 0.0");
+      await dbRun("ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS muscle_mass REAL DEFAULT 0.0");
+      await dbRun("ALTER TABLE progress_logs ADD COLUMN IF NOT EXISTS water_level REAL DEFAULT 0.0");
+
       // Update sessions table
       await dbRun("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS session_date VARCHAR(50)");
       await dbRun("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'upcoming'");
