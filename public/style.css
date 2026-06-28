@@ -1417,3 +1417,26 @@ body {
     transform: translateY(-2px);
   }
 }
+
+/* Touch-friendly targets & Mobile spacing systems */
+button, .btn, .tabbar-item, .mobile-day-btn, .tab-btn, .form-control {
+  min-height: 44px;
+}
+
+@media (max-width: 768px) {
+  /* Prevent bottom navbar overlaps */
+  .page-section {
+    padding-bottom: 110px !important;
+  }
+  
+  /* Touch target overrides */
+  button, .btn, .tabbar-item, .mobile-day-btn, .tab-btn, .form-control {
+    min-height: 44px !important;
+  }
+
+  /* Full width buttons in modals & control headers */
+  .timetable-header-controls button {
+    width: 100% !important;
+    min-height: 44px !important;
+  }
+}
