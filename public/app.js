@@ -444,6 +444,17 @@ document.addEventListener('DOMContentLoaded', () => {
         executeCancelSession(sessionObj.id);
       };
 
+      // Wire up desktop status action buttons
+      document.getElementById('btnMarkAttendedDesktop').onclick = () => {
+        submitAttendanceStatus('attended');
+      };
+      document.getElementById('btnMarkMissedDesktop').onclick = () => {
+        submitAttendanceStatus('missed');
+      };
+      document.getElementById('btnRescheduleDesktop').onclick = () => {
+        openRescheduleModalFromSheet();
+      };
+
       document.getElementById('sessionDetailModal').classList.add('active');
       lucide.createIcons();
     }
@@ -464,6 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (res.ok) {
         showToast(`Attendance updated: ${status}`);
         closeAttendanceSheet();
+        closeSessionDetailModal();
         loadCalendarData();
         loadDashboardData();
       }
@@ -475,6 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.openRescheduleModalFromSheet = () => {
     if (!currentActiveSession) return;
     closeAttendanceSheet();
+    closeSessionDetailModal();
     document.getElementById('reschedNewDate').value = currentActiveSession.session_date || new Date().toISOString().split('T')[0];
     document.getElementById('reschedNewTime').value = currentActiveSession.session_time.substring(0, 5);
     document.getElementById('rescheduleFormModal').classList.add('active');
@@ -1037,23 +1050,65 @@ document.addEventListener('DOMContentLoaded', () => {
       const clientSessions = await res.json();
 
       if (clientSessions.length === 0) {
-        container.innerHTML = '<p style="font-size:13px; color:var(--text-muted); text-align:center; padding: 20px 0;">No recurring training sessions booked.</p>';
+        container.innerHTML = '<p style="font-size:13px; color:var(--text-muted); text-align:center; padding: 20px 0;">No training sessions booked.</p>';
         return;
       }
 
-      container.innerHTML = clientSessions.map(s => {
-        const days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-        const dayName = days[s.day_of_week] || 'Monday';
-        return `
-          <div class="history-log-item">
-            <div>
-              <strong style="color:var(--primary); font-size:13px;">${dayName}s at ${s.session_time}</strong>
-              <span style="display:block; font-size:11.5px; color:var(--text-secondary); margin-top:2px;">Target: ${s.notes || 'General Training'}</span>
-            </div>
-            <button class="btn btn-danger btn-sm" onclick="executeCancelProfileSession(${s.id})" style="padding:4px 8px;">Cancel</button>
+      const historySessions = clientSessions.filter(s => s.status === 'attended' || s.status === 'missed');
+      const upcomingSessions = clientSessions.filter(s => s.status !== 'attended' && s.status !== 'missed');
+
+      let html = '';
+
+      if (historySessions.length > 0) {
+        html += `
+          <h5 style="font-size:11px; text-transform:uppercase; color:var(--primary); margin: 12px 0 6px 0; font-weight:700;">Workout Attendance History</h5>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            ${historySessions.map(s => {
+              const statusPill = s.status === 'attended' 
+                ? '<span style="font-size:9.5px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.1); padding:2px 8px; border-radius:50px; text-transform:uppercase;">Attended</span>'
+                : '<span style="font-size:9.5px; font-weight:700; color:#ef4444; background:rgba(239,68,68,0.1); padding:2px 8px; border-radius:50px; text-transform:uppercase;">Missed</span>';
+              
+              return `
+                <div class="history-log-item" style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 12px; display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.01);">
+                  <div>
+                    <strong style="font-size:12.5px; color:var(--text-primary);">${s.session_date} @ ${s.session_time}</strong>
+                    <span style="display:block; font-size:11px; color:var(--text-secondary); margin-top:2px;">Target: ${s.notes || 'Workout Session'}</span>
+                  </div>
+                  ${statusPill}
+                </div>
+              `;
+            }).join('')}
           </div>
         `;
-      }).join('');
+      }
+
+      if (upcomingSessions.length > 0) {
+        html += `
+          <h5 style="font-size:11px; text-transform:uppercase; color:var(--text-secondary); margin: 16px 0 6px 0; font-weight:700;">Upcoming Schedule</h5>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            ${upcomingSessions.map(s => {
+              const days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+              const dayName = days[s.day_of_week] || 'Monday';
+              const dateLabel = s.session_date ? `${s.session_date} (${dayName.substring(0,3)})` : dayName;
+              return `
+                <div class="history-log-item" style="padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 12px; display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.01);">
+                  <div>
+                    <strong style="color:var(--primary); font-size:12.5px;">${dateLabel} @ ${s.session_time}</strong>
+                    <span style="display:block; font-size:11px; color:var(--text-secondary); margin-top:2px;">Target: ${s.notes || 'Workout Session'}</span>
+                  </div>
+                  <button class="btn btn-danger btn-sm" onclick="executeCancelProfileSession(${s.id})" style="padding:4px 8px; font-size:10px;">Cancel</button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      if (html === '') {
+        html = '<p style="font-size:13px; color:var(--text-muted); text-align:center; padding: 20px 0;">No active training sessions booked.</p>';
+      }
+
+      container.innerHTML = html;
     } catch (err) {
       console.error(err);
     }
@@ -1552,12 +1607,12 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = `timetable-session-card card-theme-${colorIndex} ${statusClass}` + themeClass;
             
             // Render card with initials avatar tag, original date strikethrough, and status indicator icon
-            let statusIcon = '⏳';
-            if (s.status === 'attended') statusIcon = '✅';
-            else if (s.status === 'missed') statusIcon = '❌';
-            else if (s.status === 'rescheduled') statusIcon = '🔄';
+            let statusIcon = '\u23F3'; // ⏳
+            if (s.status === 'attended') statusIcon = '\u2705'; // ✅
+            else if (s.status === 'missed') statusIcon = '\u274C'; // ❌
+            else if (s.status === 'rescheduled') statusIcon = '\uD83D\uDD04'; // 🔄
             else if (!s.status && (s.day_of_week < currentDayIndex || (s.day_of_week == currentDayIndex && (parseInt(s.session_time.split(':')[0]) < currentHour)))) {
-              statusIcon = '✅';
+              statusIcon = '\u2705'; // ✅ (defaults to completed for past slots)
             }
 
             const originalDateLabel = s.original_date && s.original_date !== s.session_date 
