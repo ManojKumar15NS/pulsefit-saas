@@ -1460,22 +1460,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const colorIndex = s.client_id % 6;
             card.className = `timetable-session-card card-theme-${colorIndex} ${statusClass}` + themeClass;
             
-            // Render card with initials avatar tag and original date strikethrough
+            // Render card with initials avatar tag, original date strikethrough, and status indicator icon
+            let statusIcon = '⏳';
+            if (s.status === 'attended') statusIcon = '✅';
+            else if (s.status === 'missed') statusIcon = '❌';
+            else if (s.status === 'rescheduled') statusIcon = '🔄';
+            else if (!s.status && (s.day_of_week < currentDayIndex || (s.day_of_week == currentDayIndex && (parseInt(s.session_time.split(':')[0]) < currentHour)))) {
+              statusIcon = '✅';
+            }
+
             const originalDateLabel = s.original_date && s.original_date !== s.session_date 
-              ? `<span style="font-size:8px; text-decoration:line-through; opacity:0.6; color:var(--text-secondary); display:block; margin-top:2px;">Prev: ${s.original_date}</span>` 
+              ? `<span style="font-size:8px; text-decoration:line-through; opacity:0.75; color:rgba(255, 255, 255, 0.7); display:block; margin-top:2px;">Prev: ${s.original_date}</span>` 
               : '';
 
             const clientInitials = s.client_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
             card.innerHTML = `
               <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:4px;">
                 <div style="overflow:hidden;">
-                  <h4>${s.client_name}</h4>
-                  <p>${s.notes || 'Workout Session'}</p>
+                  <h4 style="display:flex; align-items:center; gap:4px; margin:0; color:#ffffff !important;">
+                    <span style="font-size:10px;">${statusIcon}</span>
+                    <span>${s.client_name}</span>
+                  </h4>
+                  <p style="color:rgba(255,255,255,0.85) !important;">${s.notes || 'Workout Session'}</p>
                   ${originalDateLabel}
                 </div>
-                <div class="sess-client-initial" style="font-size:8px; font-weight:700; width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; color:var(--text-primary); flex-shrink:0;">${clientInitials}</div>
+                <div class="sess-client-initial" style="font-size:8px; font-weight:700; width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); display:flex; align-items:center; justify-content:center; color:#ffffff; flex-shrink:0;">${clientInitials}</div>
               </div>
-              <div class="session-time-subtext">${s.session_time}</div>
+              <div class="session-time-subtext" style="color:rgba(255,255,255,0.95) !important;">${s.session_time}</div>
             `;
             
             card.addEventListener('click', (e) => {

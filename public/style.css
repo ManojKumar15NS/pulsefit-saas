@@ -1471,18 +1471,14 @@ button, .btn, .tabbar-item, .mobile-day-btn, .tab-btn, .form-control {
 
 /* Calendar Card Status Styles */
 .timetable-session-card.status-completed {
-  border-left: 3px solid var(--primary) !important;
-  background: rgba(76, 175, 80, 0.06) !important;
+  border-left: 4px solid #10b981 !important;
 }
 .timetable-session-card.status-missed {
-  border-left: 3px solid #ef4444 !important;
-  background: rgba(239, 68, 68, 0.06) !important;
+  border-left: 4px solid #ef4444 !important;
 }
 .timetable-session-card.status-rescheduled {
-  border-left: 3px solid #f59e0b !important;
-  background: rgba(245, 158, 11, 0.06) !important;
+  border-left: 4px solid #f59e0b !important;
 }
 .timetable-session-card.status-upcoming {
-  border-left: 3px solid var(--text-secondary) !important;
-  background: rgba(255, 255, 255, 0.03) !important;
+  border-left: 4px solid #6b7280 !important;
 }
