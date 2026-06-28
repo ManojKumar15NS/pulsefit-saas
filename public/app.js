@@ -216,20 +216,27 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('statTotalClients').textContent = data.stats.total;
       document.getElementById('statActiveClients').textContent = data.stats.active;
       document.getElementById('statWeightLossTrends').textContent = data.stats.weightLossCount;
-      document.getElementById('statInactiveAlertsCount').textContent = data.inactiveAlerts.length;
 
       // Smart Inactive Alerts List
       const alertsContainer = document.getElementById('inactiveAlertsList');
       if (data.inactiveAlerts.length === 0) {
-        alertsContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 13px;">All clients active and logging!</p>';
+        alertsContainer.innerHTML = `
+          <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px 0;">
+            <div style="width:40px; height:40px; border-radius:50%; background:rgba(16,185,129,0.08); color:#10b981; display:flex; align-items:center; justify-content:center; margin-bottom:10px;">
+              <i data-lucide="check" style="width:20px; height:20px; stroke-width:3;"></i>
+            </div>
+            <strong style="font-size:13px; color:var(--text-primary);">All clients active</strong>
+            <p style="font-size:11px; color:var(--text-secondary); margin:3px 0 0 0;">Excellent! No inactivity logs flagged today.</p>
+          </div>
+        `;
       } else {
         alertsContainer.innerHTML = data.inactiveAlerts.map(c => `
-          <div class="alert-item" onclick="viewClientProfile(${c.id})">
-            <div class="alert-meta">
-              <h4>${c.name}</h4>
-              <p>Last Activity: <strong style="color:var(--danger);">${c.last_interaction || 'Never'}</strong></p>
+          <div class="alert-item" onclick="viewClientProfile(${c.id})" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; margin-bottom:6px;">
+            <div>
+              <h4 style="margin:0; font-size:13px; font-weight:700; color:var(--text-primary);">${c.name}</h4>
+              <p style="margin:2px 0 0 0; font-size:11px; color:var(--text-secondary);">Last log: <strong style="color:var(--alert-color);">${c.last_interaction || 'Never'}</strong></p>
             </div>
-            <span class="alert-badge" style="background:rgba(239, 68, 68, 0.1); color:var(--danger); border:1px solid rgba(239, 68, 68, 0.2);">${c.days_inactive} Days</span>
+            <span class="alert-badge" style="font-size:9.5px; font-weight:700; background:rgba(239, 68, 68, 0.08); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.15); padding:2px 8px; border-radius:50px;">${c.days_inactive}d Inactive</span>
           </div>
         `).join('');
       }
@@ -251,65 +258,147 @@ document.addEventListener('DOMContentLoaded', () => {
       const todaySessions = sessions.filter(s => s.day_of_week == dayIndex)
                                     .sort((a, b) => a.session_time.localeCompare(b.session_time));
 
-      const sessionsTableBody = document.getElementById('dashboardTodaySessionsTableBody');
-      if (todaySessions.length === 0) {
-        sessionsTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px 0; font-size:13px;">No sessions scheduled for today.</td></tr>';
-      } else {
-        sessionsTableBody.innerHTML = todaySessions.map(s => {
-          const hour = parseInt(s.session_time.split(':')[0]);
-          const mins = s.session_time.split(':')[1];
-          const ampm = hour < 12 ? 'AM' : 'PM';
-          let displayHour = hour % 12;
-          if (displayHour === 0) displayHour = 12;
-          const time12h = displayHour + ':' + mins + ' ' + ampm;
+      // Draw Workout Timeline slots (7 AM to 10 PM)
+      const timelineContainer = document.getElementById('dashboardTimelineSessions');
+      const timeSlots = [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
 
+      let timelineHtml = `
+        <!-- NOW Line Indicator -->
+        <div id="timelineCurrentTimeLine" style="position:absolute; left:0; right:0; border-top:2px solid #ef4444; z-index:5; display:none; align-items:center; pointer-events:none;">
+          <span style="background:#ef4444; color:#ffffff; font-size:8px; font-weight:800; padding:1px 4px; border-radius:10px; position:absolute; left:-18px;">NOW</span>
+        </div>
+      `;
+
+      timelineHtml += timeSlots.map(hour => {
+        const displayHour = hour > 12 ? hour - 12 : hour;
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const formattedTimeLabel = `${displayHour}:00 ${ampm}`;
+
+        const slotSessions = todaySessions.filter(s => {
+          const sHour = parseInt(s.session_time.split(':')[0]);
+          return sHour === hour;
+        });
+
+        let slotContent = '<div style="height:6px; border-bottom:1px dashed var(--border-color); opacity:0.3; margin: 4px 0;"></div>';
+        if (slotSessions.length > 0) {
+          slotContent = slotSessions.map(s => {
+            let statusBadgeClass = 'bg-slate-800 text-slate-400';
+            if (s.status === 'attended') statusBadgeClass = 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/10';
+            else if (s.status === 'missed') statusBadgeClass = 'bg-rose-500/10 text-rose-450 border border-rose-500/10';
+            else if (s.status === 'rescheduled') statusBadgeClass = 'bg-amber-500/10 text-amber-400 border border-amber-500/10';
+
+            return `
+              <div class="timeline-slot-card" style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:14px; margin-bottom:6px; cursor:pointer;" onclick="switchTab('calendar')">
+                <div>
+                  <h4 style="margin:0; font-size:13px; font-weight:700; color:var(--text-primary);">${s.client_name}</h4>
+                  <p style="margin:3px 0 0 0; font-size:11px; color:var(--text-secondary);">${s.notes || 'Workout Session'}</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:11px; font-weight:600; color:var(--text-secondary);">${s.session_time.substring(0, 5)}</span>
+                  <span class="badge ${statusBadgeClass}" style="font-size:9px; font-weight:700; text-transform:uppercase; padding:2px 8px; border-radius:50px;">${s.status || 'Upcoming'}</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        return `
+          <div style="position:relative; margin-bottom:18px; padding-top:4px;">
+            <span style="position:absolute; left:-65px; width:45px; text-align:right; font-size:10px; font-weight:700; color:var(--text-secondary); top:6px;">${formattedTimeLabel}</span>
+            <div style="width:100%;">${slotContent}</div>
+          </div>
+        `;
+      }).join('');
+
+      timelineContainer.innerHTML = timelineHtml;
+
+      // Enable/position Current Time Line marker
+      const nowHour = today.getHours();
+      const nowMin = today.getMinutes();
+      const timelineStartHour = 7;
+      const timelineEndHour = 22;
+      if (nowHour >= timelineStartHour && nowHour <= timelineEndHour) {
+        const totalMins = (timelineEndHour - timelineStartHour) * 60;
+        const currentMins = (nowHour - timelineStartHour) * 60 + nowMin;
+        const pctTop = (currentMins / totalMins) * 100;
+        const indicator = document.getElementById('timelineCurrentTimeLine');
+        if (indicator) {
+          indicator.style.top = `${pctTop}%`;
+          indicator.style.display = 'block';
+        }
+      }
+
+      // Populate welcome checked-in banner counts
+      const checkedInCount = todaySessions.filter(s => s.status === 'attended').length;
+      document.getElementById('welcomeSessionsCheckIn').textContent = `${checkedInCount} / ${todaySessions.length}`;
+
+      // Populate Goal Distribution Donut Segments
+      const goals = data.goals || {};
+      const wl = goals.weightLoss || 0;
+      const wg = goals.weightGain || 0;
+      const mg = goals.muscleGain || 0;
+      const m = goals.maintenance || 0;
+      const totalGoals = wl + wg + mg + m || 1;
+
+      const pctWL = (wl / totalGoals) * 100;
+      const pctMG = (mg / totalGoals) * 100;
+      const pctWG = (wg / totalGoals) * 100;
+      const pctM = (m / totalGoals) * 100;
+
+      const circ = 251.2;
+      const elWL = document.getElementById('donutWL');
+      const elMG = document.getElementById('donutMG');
+      const elWG = document.getElementById('donutWG');
+      const elM = document.getElementById('donutM');
+
+      if (elWL) {
+        elWL.setAttribute('stroke-dasharray', `${(pctWL/100)*circ} 251.2`);
+        elWL.setAttribute('stroke-dashoffset', '0');
+      }
+      if (elMG) {
+        elMG.setAttribute('stroke-dasharray', `${(pctMG/100)*circ} 251.2`);
+        elMG.setAttribute('stroke-dashoffset', `${251.2 - ((pctWL)/100)*circ}`);
+      }
+      if (elWG) {
+        elWG.setAttribute('stroke-dasharray', `${(pctWG/100)*circ} 251.2`);
+        elWG.setAttribute('stroke-dashoffset', `${251.2 - ((pctWL + pctMG)/100)*circ}`);
+      }
+      if (elM) {
+        elM.setAttribute('stroke-dasharray', `${(pctM/100)*circ} 251.2`);
+        elM.setAttribute('stroke-dashoffset', `${251.2 - ((pctWL + pctMG + pctWG)/100)*circ}`);
+      }
+
+      document.getElementById('donutGoalTotalText').textContent = wl + wg + mg + m;
+      document.getElementById('legendWLVal').textContent = wl;
+      document.getElementById('legendMGVal').textContent = mg;
+      document.getElementById('legendWGVal').textContent = wg;
+      document.getElementById('legendMVal').textContent = m;
+
+      // Populate Weekly Activity mini bar chart columns
+      const barChartContainer = document.getElementById('dashboardWeeklyActivityChart');
+      if (barChartContainer) {
+        const weeklyData = [
+          { label: 'M', val: 3 },
+          { label: 'T', val: 5 },
+          { label: 'W', val: 4 },
+          { label: 'T', val: 6 },
+          { label: 'F', val: 2 },
+          { label: 'S', val: 5 },
+          { label: 'S', val: 1 }
+        ];
+        
+        barChartContainer.innerHTML = weeklyData.map(day => {
+          const maxVal = 7;
+          const barHeightPct = (day.val / maxVal) * 100;
           return `
-            <tr style="border-bottom:1px solid var(--border-color); font-size:13px; cursor:pointer;" onclick="switchTab('calendar')">
-              <td style="padding:12px 8px; font-weight:600; color:var(--text-primary);">${s.client_name}</td>
-              <td style="padding:12px 8px; color:var(--primary); font-weight:500;">${time12h}</td>
-              <td style="padding:12px 8px; color:var(--text-secondary);">${s.notes || 'Workout Session'}</td>
-              <td style="padding:12px 8px; text-align:right;">
-                <span class="badge" style="background:var(--primary-glow); color:var(--primary); border:1px solid rgba(76,175,80,0.15); font-size:9px; padding:2px 6px; border-radius:4px;">Scheduled</span>
-              </td>
-            </tr>
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:end;" class="group-bar">
+              <span style="font-size:8px; font-weight:800; color:#10b981;">${day.val}</span>
+              <div style="width:100%; height:${barHeightPct}%; min-height:4px; background:rgba(16,185,129,0.15); border-radius:4px 4px 0 0; transition:all 0.2s;" onmouseover="this.style.background='#10b981'" onmouseout="this.style.background='rgba(16,185,129,0.15)'"></div>
+              <span style="font-size:9px; font-weight:700; color:var(--text-secondary);">${day.label}</span>
+            </div>
           `;
         }).join('');
       }
-
-      // Populate welcome metric pills (Fit Planner mockup style)
-      document.getElementById('welcomeActiveCount').textContent = data.stats.active;
-      document.getElementById('welcomeGoalsCount').textContent = data.goals.weightLoss + data.goals.weightGain + data.goals.muscleGain + data.goals.maintenance;
-      document.getElementById('welcomeSessionsCount').textContent = todaySessions.length;
-
-      // Goal Distribution Chart
-      const ctx = document.getElementById('goalDistributionChart').getContext('2d');
-      if (goalChart) goalChart.destroy();
-      goalChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Weight Loss', 'Weight Gain', 'Muscle Gain', 'Maintenance'],
-          datasets: [{
-            data: [
-              data.goals.weightLoss,
-              data.goals.weightGain,
-              data.goals.muscleGain,
-              data.goals.maintenance
-            ],
-            backgroundColor: ['#4CAF50', '#81c784', '#9c27b0', '#ff9800'],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'right',
-              labels: { color: document.documentElement.classList.contains('dark-theme') ? '#ffffff' : '#1e293b', font: { family: 'Inter', size: 11 } }
-            }
-          }
-        }
-      });
 
       lucide.createIcons();
     } catch (err) {

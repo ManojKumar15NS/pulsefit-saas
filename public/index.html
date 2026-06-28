@@ -96,112 +96,155 @@
         </div>
 
         <!-- Premium Welcome Banner ("Fit Planner" Mockup layout) -->
-        <div class="welcome-banner card" style="margin-bottom: 24px; padding: 24px; background: linear-gradient(135deg, rgba(76,175,80,0.08), rgba(156,39,176,0.05)); position:relative; overflow:hidden;">
+        <div class="welcome-banner card" style="margin-bottom: 24px; padding: 24px; background: linear-gradient(135deg, rgba(16,185,129,0.06), rgba(16,185,129,0.02)); border: 1px solid var(--border-color); position:relative; overflow:hidden; border-radius: 20px;">
           <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
-            <div class="trainer-avatar-large" style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, var(--primary), var(--secondary)); display:flex; align-items:center; justify-content:center; color:#07090e; font-family:var(--font-display); font-size:24px; font-weight:700;">PF</div>
+            <div class="trainer-avatar-large" style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, #10b981, #059669); display:flex; align-items:center; justify-content:center; color:#ffffff; font-family:var(--font-display); font-size:24px; font-weight:700;" id="welcomeAvatarInitials">JD</div>
             <div style="flex:1; min-width:250px;">
-              <h2 style="font-family:var(--font-display); font-size:24px; font-weight:700;" id="welcomeTrainerName">Hi, Coach</h2>
-              <p style="color:var(--text-secondary); font-size:13.5px; margin-top:4px;">How is your day today? Below we show your daily exercise and client statistics in this dashboard. Check it out and grind up!</p>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <h2 style="font-family:var(--font-display); font-size:22px; font-weight:800;" id="welcomeTrainerName">Hi, Coach</h2>
+                <span style="font-size:10px; font-weight:700; color:#10b981; background:rgba(16,185,129,0.08); padding:3px 8px; border-radius:50px; text-transform:uppercase;">🔥 5-day streak</span>
+              </div>
+              <p style="color:var(--text-secondary); font-size:13px; margin-top:4px;">Here is your customized overview of client performance and slot attendance today.</p>
             </div>
-          </div>
-          
-          <!-- Fit Planner style circular metrics inline row -->
-          <div class="welcome-stats-row" style="margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px; text-align:center;">
-            <div class="welcome-stat-pill">
-              <span style="font-size:10px; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Clients Active</span>
-              <strong id="welcomeActiveCount" style="font-size:18px; color:var(--primary); font-family:var(--font-display);">0</strong>
-            </div>
-            <div class="welcome-stat-pill">
-              <span style="font-size:10px; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Goal Metrics</span>
-              <strong id="welcomeGoalsCount" style="font-size:18px; color:#bb6bd9; font-family:var(--font-display);">0</strong>
-            </div>
-            <div class="welcome-stat-pill">
-              <span style="font-size:10px; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Today's Sessions</span>
-              <strong id="welcomeSessionsCount" style="font-size:18px; color:var(--alert); font-family:var(--font-display);">0</strong>
+            <div class="welcome-badge-stats" style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:10px 16px; text-align:center;">
+              <strong id="welcomeSessionsCheckIn" style="font-size:18px; color:var(--primary); font-family:var(--font-display); font-weight:850; display:block;">0 / 0</strong>
+              <span style="font-size:9px; text-transform:uppercase; color:var(--text-secondary); font-weight:700; tracking-wider:0.5px;">Clients Checked In Today</span>
             </div>
           </div>
         </div>
 
-        <!-- Quick Stats Grid -->
-        <div class="grid-stats">
-          <div class="card stat-card">
-            <div class="stat-icon cyan"><i data-lucide="users"></i></div>
-            <div class="stat-info">
-              <span class="stat-value" id="statTotalClients">-</span>
-              <span class="stat-label">Total Clients</span>
+        <!-- Quick Stats Grid with Priority Featured Card -->
+        <div class="grid-stats-priority" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px; margin-bottom:24px;">
+          <!-- Featured Stats Card -->
+          <div class="card featured-stat-card" style="display:flex; flex-direction:column; justify-content:space-between; padding:20px; border-radius:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:start;">
+              <div>
+                <span style="font-size:9px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">ACTIVE STATUS</span>
+                <h3 style="font-size:32px; font-weight:850; color:var(--text-primary); margin-top:4px;" id="statActiveClients">0</h3>
+                <p style="font-size:11px; color:var(--text-secondary); margin-top:2px;">Active clients logging stats this week</p>
+              </div>
+              <div class="stat-icon green" style="width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center;"><i data-lucide="activity"></i></div>
+            </div>
+            <!-- Sparkline Trend -->
+            <div style="height:36px; margin-top:14px; width:100%;">
+              <svg viewBox="0 0 140 30" width="100%" height="100%" class="sparkline-svg" style="color:#10b981;" preserveAspectRatio="none">
+                <path d="M0 25 Q 20 5, 40 18 T 80 10 T 120 22 T 140 8" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"></path>
+                <path d="M0 25 Q 20 5, 40 18 T 80 10 T 120 22 T 140 8 L 140 30 L 0 30 Z" fill="rgba(16,185,129,0.06)" opacity="0.5"></path>
+              </svg>
             </div>
           </div>
-          <div class="card stat-card">
-            <div class="stat-icon green"><i data-lucide="activity"></i></div>
-            <div class="stat-info">
-              <span class="stat-value" id="statActiveClients">-</span>
-              <span class="stat-label">Active Clients</span>
+
+          <!-- Secondary Stats Row/Stack -->
+          <div style="display:grid; grid-template-columns:1fr; gap:12px;">
+            <div class="card stat-card-compact" style="display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:14px;">
+              <div class="stat-icon cyan" style="width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;"><i data-lucide="users" style="width:16px; height:16px;"></i></div>
+              <div>
+                <h4 style="font-size:18px; font-weight:800; color:var(--text-primary); margin:0;" id="statTotalClients">-</h4>
+                <span style="font-size:8px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; tracking-wider:0.5px;">TOTAL REGISTRATIONS</span>
+              </div>
             </div>
-          </div>
-          <div class="card stat-card">
-            <div class="stat-icon purple"><i data-lucide="trending-down"></i></div>
-            <div class="stat-info">
-              <span class="stat-value" id="statWeightLossTrends">-</span>
-              <span class="stat-label">Clients Losing Weight</span>
+            <div class="card stat-card-compact" style="display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:14px;">
+              <div class="stat-icon purple" style="width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;"><i data-lucide="trending-down" style="width:16px; height:16px;"></i></div>
+              <div>
+                <h4 style="font-size:18px; font-weight:800; color:var(--text-primary); margin:0;" id="statWeightLossTrends">-</h4>
+                <span style="font-size:8px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; tracking-wider:0.5px;">TRENDS LOGGED</span>
+              </div>
             </div>
-          </div>
-          <div class="card stat-card">
-            <div class="stat-icon amber"><i data-lucide="alert-triangle"></i></div>
-            <div class="stat-info">
-              <span class="stat-value" id="statInactiveAlertsCount">-</span>
-              <span class="stat-label">Inactive Alerts</span>
+            <div class="card stat-card-compact" style="display:flex; align-items:center; gap:12px; padding:12px 16px; border-radius:14px;">
+              <div class="stat-icon amber" style="width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center;"><i data-lucide="check-circle" style="width:16px; height:16px;"></i></div>
+              <div>
+                <h4 style="font-size:18px; font-weight:800; color:var(--text-primary); margin:0;">88%</h4>
+                <span style="font-size:8px; font-weight:800; color:var(--text-secondary); text-transform:uppercase; tracking-wider:0.5px;">ATTENDANCE RATE</span>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- Premium Refined Dashboard Grid Layout -->
-        <div class="dashboard-grid">
-          <!-- Left Column: Today's Session Log & Goal Distribution -->
+        <div class="dashboard-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:20px;">
+          <!-- Left Column: Today's Workout Timeline -->
           <div style="display:flex; flex-direction:column; gap:20px;">
-            <!-- Today's Client Session Log (Daily Exercises mockup style) -->
-            <div class="card">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                <h3 style="font-family:var(--font-display); font-weight:700;">Today's Session Schedule</h3>
-                <span id="dashboardTodayDate" style="font-size:12px; color:var(--primary); font-weight:600;"></span>
+            <div class="card" style="padding:20px; border-radius:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+                <h3 style="font-family:var(--font-display); font-weight:800; font-size:15px; margin:0;">Today's Workout Timeline</h3>
+                <span id="dashboardTodayDate" style="font-size:11px; color:var(--primary); font-weight:700; background:rgba(16,185,129,0.06); padding:3px 10px; border-radius:50px;"></span>
               </div>
-              <div class="table-responsive" style="overflow-x:auto;">
-                <table class="session-log-table" style="width:100%; border-collapse:collapse; text-align:left;">
-                  <thead>
-                    <tr style="border-bottom:1px solid var(--border-color); color:var(--text-secondary); font-size:11px; text-transform:uppercase;">
-                      <th style="padding:10px 8px;">Client</th>
-                      <th style="padding:10px 8px;">Time</th>
-                      <th style="padding:10px 8px;">Workout Target</th>
-                      <th style="padding:10px 8px; text-align:right;">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody id="dashboardTodaySessionsTableBody">
-                    <!-- Loaded dynamically -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-            
-            <!-- Goal Distribution Chart -->
-            <div class="card chart-card">
-              <div class="chart-header" style="margin-bottom: 12px;">
-                <h3 style="font-family:var(--font-display); font-weight:700;">Client Goal Distribution</h3>
-              </div>
-              <div style="position: relative; height: 240px; width: 100%;">
-                <canvas id="goalDistributionChart"></canvas>
+              
+              <!-- Vertical Timeline container -->
+              <div class="timeline-schedule-container" style="position:relative; padding-left:55px; border-left:1px solid var(--border-color); min-height:360px;" id="dashboardTimelineSessions">
+                <!-- NOW Line Indicator -->
+                <div id="timelineCurrentTimeLine" style="position:absolute; left:0; right:0; border-top:2px solid #ef4444; z-index:5; display:none; align-items:center; pointer-events:none;">
+                  <span style="background:#ef4444; color:#ffffff; font-size:8px; font-weight:800; padding:1px 4px; border-radius:10px; position:absolute; left:-18px;">NOW</span>
+                </div>
+                <!-- Loaded dynamically by app.js (7 AM - 10 PM slots) -->
               </div>
             </div>
           </div>
 
-          <!-- Right Column: Smart Inactivity Alerts -->
-          <div class="dashboard-right-col" style="display:flex; flex-direction:column; gap:20px;">
-            <!-- Smart Inactivity Alerts Card -->
-            <div class="card">
-              <h3 style="font-family:var(--font-display); font-weight:700; margin-bottom:4px;">Smart Inactivity Alerts</h3>
-              <p style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 14px;">Active clients who haven't logged progress in the last 7 days</p>
-              <div id="inactiveAlertsList">
-                <p style="color: var(--text-muted); font-size: 13px;">No inactive clients needing attention.</p>
+          <!-- Right Column: Goals Donut, Weekly Chart, Alerts checkmark empty state -->
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            
+            <!-- Donut Goal Distribution -->
+            <div class="card" style="padding:20px; border-radius:16px;">
+              <h3 style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:12px;">Goal Distribution</h3>
+              <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;">
+                <div class="donut-chart-wrapper" style="position:relative; width:130px; height:130px; display:flex; align-items:center; justify-content:center;">
+                  <svg viewBox="0 0 100 100" class="donut-svg" style="transform:rotate(-90deg); width:100%; height:100%;">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="var(--border-color)" stroke-width="8" opacity="0.3"></circle>
+                    <!-- Segment circles filled dynamically -->
+                    <circle id="donutWL" cx="50" cy="50" r="40" fill="none" stroke="#10b981" stroke-width="8" stroke-dasharray="0 251.2" stroke-linecap="round"></circle>
+                    <circle id="donutMG" cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" stroke-width="8" stroke-dasharray="0 251.2" stroke-linecap="round"></circle>
+                    <circle id="donutWG" cx="50" cy="50" r="40" fill="none" stroke="#8b5cf6" stroke-width="8" stroke-dasharray="0 251.2" stroke-linecap="round"></circle>
+                    <circle id="donutM" cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" stroke-width="8" stroke-dasharray="0 251.2" stroke-linecap="round"></circle>
+                  </svg>
+                  <div style="position:absolute; text-align:center;">
+                    <span id="donutGoalTotalText" style="font-size:20px; font-weight:850; color:var(--text-primary); display:block; line-height:1;">0</span>
+                    <span style="font-size:8px; text-transform:uppercase; font-weight:700; color:var(--text-secondary); tracking-wider:0.5px;">Total</span>
+                  </div>
+                </div>
+                <!-- Legend below donut -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; width:100%;">
+                  <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-secondary);">
+                    <span style="width:8px; height:8px; border-radius:50%; background:#10b981; flex-shrink:0;"></span>
+                    <span class="truncate">Loss: <strong id="legendWLVal" style="color:var(--text-primary);">0</strong></span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-secondary);">
+                    <span style="width:8px; height:8px; border-radius:50%; background:#3b82f6; flex-shrink:0;"></span>
+                    <span class="truncate">Gain: <strong id="legendMGVal" style="color:var(--text-primary);">0</strong></span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-secondary);">
+                    <span style="width:8px; height:8px; border-radius:50%; background:#8b5cf6; flex-shrink:0;"></span>
+                    <span class="truncate">Muscle: <strong id="legendWGVal" style="color:var(--text-primary);">0</strong></span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-secondary);">
+                    <span style="width:8px; height:8px; border-radius:50%; background:#f59e0b; flex-shrink:0;"></span>
+                    <span class="truncate">Maint: <strong id="legendMVal" style="color:var(--text-primary);">0</strong></span>
+                  </div>
+                </div>
               </div>
             </div>
+
+            <!-- Weekly Activity Mini Bar Chart -->
+            <div class="card" style="padding:20px; border-radius:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-family:var(--font-display); font-weight:800; font-size:15px; margin:0;">Weekly Activity</h3>
+                <span style="font-size:9px; color:#10b981; font-weight:700; text-transform:uppercase;">COMPLETED</span>
+              </div>
+              <div class="weekly-bar-chart-container" style="height:100px; display:flex; align-items:flex-end; justify-content:space-between; gap:6px; padding-top:14px;" id="dashboardWeeklyActivityChart">
+                <!-- Bar columns generated by app.js -->
+              </div>
+            </div>
+
+            <!-- Smart Inactivity Alerts Card -->
+            <div class="card" style="padding:20px; border-radius:16px;">
+              <h3 style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:2px;">Smart Inactivity Alerts</h3>
+              <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 14px; margin-top:0;">Active clients who haven't logged progress in 7 days</p>
+              
+              <div id="inactiveAlertsList" style="display:flex; flex-direction:column; gap:8px;">
+                <!-- Loaded dynamically -->
+              </div>
+            </div>
+
           </div>
         </div>
       </section>
