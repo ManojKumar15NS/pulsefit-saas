@@ -6,6 +6,7 @@ export default function Schedule() {
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState('');
   const [selectedMobileDay, setSelectedMobileDay] = useState(new Date().getDay() === 0 ? 7 : new Date().getDay()); // Default 1-7 Mon-Sun
+  const [activeSessionAction, setActiveSessionAction] = useState(null); // Bottom-sliding sheet selector
   const [reschedulingSession, setReschedulingSession] = useState(null);
   const [rescheduleData, setRescheduleData] = useState({ date: '', time: '' });
   const [loading, setLoading] = useState(true);
@@ -64,7 +65,7 @@ export default function Schedule() {
         body: JSON.stringify({
           session_date: rescheduleData.date,
           session_time: rescheduleData.time,
-          notes: 'Rescheduled session.'
+          notes: 'Rescheduled workout.'
         })
       });
 
@@ -74,6 +75,7 @@ export default function Schedule() {
           ...s, 
           session_date: updated.session_date, 
           session_time: updated.session_time,
+          original_date: updated.original_date,
           status: updated.status 
         } : s));
         setReschedulingSession(null);
@@ -83,7 +85,7 @@ export default function Schedule() {
     }
   };
 
-  // Get date range of active week
+  // Date range and header setup
   const today = new Date();
   const getMonday = (d) => {
     const day = d.getDay();
@@ -161,7 +163,7 @@ export default function Schedule() {
         })}
       </div>
 
-      {/* 3. Session list as compact cards stacked vertically */}
+      {/* 3. Session cards stack */}
       <div className="space-y-3">
         {filteredSessions.length === 0 ? (
           <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-12 text-center text-slate-400 text-sm">
@@ -172,40 +174,44 @@ export default function Schedule() {
             const clientInitials = s.client_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
             
             return (
-              <Card key={s.id} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <Card key={s.id} onClick={() => setActiveSessionAction(s)} className="flex justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
                   <div className="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center font-bold text-lime-400 text-sm">
                     {clientInitials}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-sm text-white">{s.client_name}</h3>
-                      <span className={`w-2 h-2 rounded-full ${
-                        s.status === 'attended' ? 'bg-emerald-400' :
-                        s.status === 'missed' ? 'bg-rose-500' : 'bg-lime-400'
-                      }`}></span>
-                    </div>
+                    <h3 className="font-bold text-sm text-white">{s.client_name}</h3>
                     <p className="text-xs text-slate-400 mt-1">{s.notes || 'Strength & Conditioning Workout'}</p>
-                    <span className="inline-block mt-2 text-[10px] font-bold text-lime-400 bg-lime-400/10 px-2 py-0.5 rounded">
-                      {s.session_time.substring(0, 5)}
-                    </span>
+                    
+                    {/* Time & Strikethrough date displays */}
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="inline-block text-[10px] font-bold text-lime-400 bg-lime-400/10 px-2 py-0.5 rounded">
+                        {s.session_time.substring(0, 5)}
+                      </span>
+                      {s.original_date && s.original_date !== s.session_date && (
+                        <span className="text-[9px] text-rose-450 line-through opacity-75">
+                          Prev: {new Date(s.original_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Touch Actions */}
-                <div className="flex gap-2 w-full sm:w-auto border-t border-white/5 sm:border-none pt-3 sm:pt-0">
-                  <Button variant="secondary" onClick={() => handleStatusChange(s.id, 'attended')} className="flex-1 sm:flex-none text-xs min-h-[38px] px-3.5">
-                    Attended
-                  </Button>
-                  <Button variant="secondary" onClick={() => handleStatusChange(s.id, 'missed')} className="flex-1 sm:flex-none text-xs min-h-[38px] px-3.5">
-                    Missed
-                  </Button>
-                  <Button variant="secondary" onClick={() => {
-                    setReschedulingSession(s);
-                    setRescheduleData({ date: s.session_date, time: s.session_time.substring(0, 5) });
-                  }} className="flex-1 sm:flex-none text-xs min-h-[38px] px-3.5">
-                    Reschedule
-                  </Button>
+                {/* Status indicator pills */}
+                <div>
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wider uppercase ${
+                    s.status === 'attended' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/10' :
+                    s.status === 'missed' ? 'bg-rose-500/10 text-rose-450 border border-rose-500/10' :
+                    s.status === 'rescheduled' ? 'bg-amber-500/10 text-amber-450 border border-amber-500/10' :
+                    'bg-slate-800 text-slate-400 border border-white/5'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      s.status === 'attended' ? 'bg-emerald-400' :
+                      s.status === 'missed' ? 'bg-rose-400' :
+                      s.status === 'rescheduled' ? 'bg-amber-450' : 'bg-slate-400'
+                    }`}></span>
+                    {s.status === 'attended' ? 'Attended' : s.status === 'missed' ? 'Missed' : s.status === 'rescheduled' ? 'Rescheduled' : 'Upcoming'}
+                  </span>
                 </div>
               </Card>
             );
@@ -213,7 +219,47 @@ export default function Schedule() {
         )}
       </div>
 
-      {/* Reschedule Overlay Modal */}
+      {/* 4. Bottom-Sliding Action Sheet overlay */}
+      {activeSessionAction && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-end justify-center p-4 animate-fade-in"
+          onClick={() => setActiveSessionAction(null)}
+        >
+          <div 
+            className="w-full max-w-sm bg-slate-900 border border-white/10 rounded-t-3xl p-6 space-y-4 shadow-2xl animate-slide-up"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Grab handle indicator */}
+            <div className="w-12 h-1 bg-white/10 rounded-full mx-auto mb-2"></div>
+
+            <div className="text-center">
+              <h3 className="font-bold text-base text-white">{activeSessionAction.client_name}</h3>
+              <p className="text-xs text-slate-400 mt-1">Update workout session details or record attendance</p>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <Button variant="primary" onClick={() => { handleStatusChange(activeSessionAction.id, 'attended'); setActiveSessionAction(null); }}>
+                Mark Attended
+              </Button>
+              <Button variant="secondary" onClick={() => { handleStatusChange(activeSessionAction.id, 'missed'); setActiveSessionAction(null); }}>
+                Mark Missed
+              </Button>
+              <Button variant="secondary" onClick={() => { 
+                setReschedulingSession(activeSessionAction); 
+                setRescheduleData({ date: activeSessionAction.session_date, time: activeSessionAction.session_time.substring(0, 5) });
+                setActiveSessionAction(null); 
+              }}>
+                Reschedule Session
+              </Button>
+              <Button variant="danger" onClick={() => setActiveSessionAction(null)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reschedule Modal */}
       {reschedulingSession && (
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
           <div className="bg-slate-900 border border-white/10 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">

@@ -11,29 +11,22 @@ const requireAuth = (req, res, next) => {
 
 router.use(requireAuth);
 
-// 1. GET ALL SESSIONS WITH FILTERS (trainer isolated)
+// 1. GET ALL SESSIONS WITH FILTERS
 router.get('/', async (req, res) => {
   const pool = req.app.get('dbPool');
-  const { client_id, start_date, end_date } = req.query;
+  const { client_id } = req.query;
 
   let query = `
-    SELECT s.*, c.name as client_name, p.name as package_name
+    SELECT s.*, c.name as client_name, c.package_type
     FROM sessions s
     JOIN clients c ON s.client_id = c.id
-    LEFT JOIN packages p ON c.package_id = p.id
     WHERE c.trainer_id = $1
   `;
   const params = [req.trainerId];
-  let paramIndex = 2;
 
   if (client_id) {
-    query += ` AND s.client_id = $${paramIndex++}`;
+    query += ` AND s.client_id = $2`;
     params.push(parseInt(client_id));
-  }
-
-  if (start_date && end_date) {
-    query += ` AND s.session_date BETWEEN $${paramIndex++} AND $${paramIndex++}`;
-    params.push(start_date, end_date);
   }
 
   query += ` ORDER BY s.session_date ASC, s.session_time ASC`;
@@ -46,13 +39,12 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 2. TOGGLE ATTENDANCE / STATUS (attended, missed, upcoming)
+// 2. MARK ATTENDANCE STATUS
 router.put('/:id/status', async (req, res) => {
   const pool = req.app.get('dbPool');
-  const { status } = req.body; // 'attended', 'missed', 'upcoming'
+  const { status } = req.body; // 'attended', 'missed', 'upcoming', 'rescheduled'
 
   try {
-    // Verify owner
     const sessionCheck = await pool.query(
       `SELECT s.id FROM sessions s 
        JOIN clients c ON s.client_id = c.id 
@@ -61,7 +53,7 @@ router.put('/:id/status', async (req, res) => {
     );
 
     if (sessionCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Session not found or unauthorized' });
+      return res.status(404).json({ error: 'Session unauthorized' });
     }
 
     const result = await pool.query(
@@ -75,29 +67,36 @@ router.put('/:id/status', async (req, res) => {
   }
 });
 
-// 3. RESCHEDULE A SESSION (changes time/date and flags status)
+// 3. RESCHEDULE SLOT & STORE HISTORY
 router.put('/:id/reschedule', async (req, res) => {
   const pool = req.app.get('dbPool');
   const { session_date, session_time, notes } = req.body;
 
   try {
-    // Verify owner
-    const sessionCheck = await pool.query(
-      `SELECT s.id FROM sessions s 
+    // Retrieve current session to log original_date audit trail
+    const currentSessionQuery = await pool.query(
+      `SELECT s.* FROM sessions s 
        JOIN clients c ON s.client_id = c.id 
        WHERE s.id = $1 AND c.trainer_id = $2`,
       [req.params.id, req.trainerId]
     );
 
-    if (sessionCheck.rows.length === 0) {
-      return res.status(404).json({ error: 'Session not found or unauthorized' });
+    if (currentSessionQuery.rows.length === 0) {
+      return res.status(404).json({ error: 'Session unauthorized' });
     }
+
+    const currentSession = currentSessionQuery.rows[0];
+
+    // If original_date is not yet set, lock it to the active session_date
+    const originalDate = currentSession.original_date || currentSession.session_date;
 
     const result = await pool.query(
       `UPDATE sessions 
-       SET session_date = $1, session_time = $2, status = 'rescheduled', notes = COALESCE($3, notes) 
-       WHERE id = $4 RETURNING *`,
-      [session_date, session_time, notes || null, req.params.id]
+       SET session_date = $1, session_time = $2, 
+           original_date = $3, status = 'rescheduled', 
+           notes = COALESCE($4, notes)
+       WHERE id = $5 RETURNING *`,
+      [session_date, session_time, originalDate, notes || null, req.params.id]
     );
 
     res.json(result.rows[0]);
