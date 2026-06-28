@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PulseFit - Premium Gym Trainer SaaS</title>
+  <link rel="stylesheet" href="style.css?v=1.3">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app-wrapper">
+    <!-- Desktop Sidebar Navigation -->
+    <aside class="sidebar">
+      <a href="#" class="brand">
+        <div class="brand-icon">&#x26A1;</div>
+        <span class="brand-name">PulseFit</span>
+      </a>
+      
+      <nav class="nav-menu">
+        <ul>
+          <li class="nav-item active" data-tab="dashboard">
+            <a href="#"><i class="nav-icon" data-lucide="layout-dashboard"></i> Dashboard</a>
+          </li>
+          <li class="nav-item" data-tab="clients">
+            <a href="#"><i class="nav-icon" data-lucide="users"></i> Clients</a>
+          </li>
+          <li class="nav-item" data-tab="progress">
+            <a href="#"><i class="nav-icon" data-lucide="trending-up"></i> Progress</a>
+          </li>
+          <li class="nav-item" data-tab="calendar">
+            <a href="#"><i class="nav-icon" data-lucide="calendar"></i> Schedule</a>
+          </li>
+          <li class="nav-item" data-tab="messages">
+            <a href="#"><i class="nav-icon" data-lucide="message-square"></i> Messages</a>
+          </li>
+        </ul>
+      </nav>
+      
+      <div class="sidebar-footer">
+        <!-- Theme Switcher Button -->
+        <button class="theme-toggle-btn" id="themeToggleBtn" style="width: 100%; margin-bottom: 10px; background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 10px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 500; font-family: var(--font-sans); font-size: 13.5px; transition: all 0.2s ease;">
+          <i data-lucide="sun"></i> <span>Light Mode</span>
+        </button>
+        <button class="logout-btn" onclick="openLogoutModal()">
+          <i data-lucide="log-out"></i> Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Bottom Tab Bar -->
+    <nav class="bottom-tabbar">
+      <a href="#" class="tabbar-item active" data-tab="dashboard">
+        <i class="tabbar-icon" data-lucide="layout-dashboard"></i>
+        <span>Dashboard</span>
+      </a>
+      <a href="#" class="tabbar-item" data-tab="clients">
+        <i class="tabbar-icon" data-lucide="users"></i>
+        <span>Clients</span>
+      </a>
+      <a href="#" class="tabbar-item" data-tab="progress">
+        <i class="tabbar-icon" data-lucide="trending-up"></i>
+        <span>Progress</span>
+      </a>
+      <a href="#" class="tabbar-item" data-tab="calendar">
+        <i class="tabbar-icon" data-lucide="calendar"></i>
+        <span>Schedule</span>
+      </a>
+      <a href="#" class="tabbar-item" data-tab="messages">
+        <i class="tabbar-icon" data-lucide="message-square"></i>
+        <span>Messages</span>
+      </a>
+    </nav>
+
+    <!-- Main Content Panel -->
+    <main class="main-content">
+      <!-- 1. DASHBOARD PAGE -->
+      <section id="dashboard" class="page-section active">
+        <div class="content-header">
+          <div class="header-title">
+            <h1>Trainer Dashboard</h1>
+            <p>Overview of your clients and weekly schedule</p>
+          </div>
+          <div class="header-actions">
+            <!-- Mobile Toggle Theme Button -->
+            <button class="btn btn-secondary btn-sm" id="themeToggleBtnMobile" style="display:none; margin-right: 8px;"><i data-lucide="sun"></i></button>
+            <button class="btn btn-primary" onclick="openAddClientModal()">
+              <i data-lucide="user-plus"></i> Add Client
+            </button>
+          </div>
+        </div>
+
+        <!-- Premium Welcome Banner ("Fit Planner" Mockup layout) -->
+        <div class="welcome-banner card" style="margin-bottom: 24px; padding: 24px; background: linear-gradient(135deg, rgba(76,175,80,0.08), rgba(156,39,176,0.05)); position:relative; overflow:hidden;">
+          <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+            <div class="trainer-avatar-large" style="width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg, var(--primary), var(--secondary)); display:flex; align-items:center; justify-content:center; color:#07090e; font-family:var(--font-display); font-size:24px; font-weight:700;">PF</div>
+            <div style="flex:1; min-width:250px;">
+              <h2 style="font-family:var(--font-display); font-size:24px; font-weight:700;" id="welcomeTrainerName">Hi, Coach</h2>
+              <p style="color:var(--text-secondary); font-size:13.5px; margin-top:4px;">How is your day today? Below we show your daily exercise and client statistics in this dashboard. Check it out and grind up!</p>
+            </div>
+          </div>
+          
+          <!-- Fit Planner style circular metrics inline row -->
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:16px; margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px; text-align:center;">
+            <div class="welcome-stat-pill">
+              <span style="font-size:10px; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Clients Active</span>
+              <strong id="welcomeActiveCount" style="font-size:18px; color:var(--primary); font-family:var(--font-display);">0</strong>
+            </div>
+            <div class="welcome-stat-pill">
+              <span style="font-size:10px; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Goal Metrics</span>
+              <strong id="welcomeGoalsCount" style="font-size:18px; color:#bb6bd9; font-family:var(--font-display);">0</strong>
+            </div>
+            <div class="welcome-stat-pill">
+              <span style="font-size:10px; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Today's Sessions</span>
+              <strong id="welcomeSessionsCount" style="font-size:18px; color:var(--alert); font-family:var(--font-display);">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Stats Grid -->
+        <div class="grid-stats">
+          <div class="card stat-card">
+            <div class="stat-icon cyan"><i data-lucide="users"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="statTotalClients">-</span>
+              <span class="stat-label">Total Clients</span>
+            </div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon green"><i data-lucide="activity"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="statActiveClients">-</span>
+              <span class="stat-label">Active Clients</span>
+            </div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon purple"><i data-lucide="trending-down"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="statWeightLossTrends">-</span>
+              <span class="stat-label">Clients Losing Weight</span>
+            </div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon amber"><i data-lucide="alert-triangle"></i></div>
+            <div class="stat-info">
+              <span class="stat-value" id="statInactiveAlertsCount">-</span>
+              <span class="stat-label">Inactive Alerts</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Premium Refined Dashboard Grid Layout -->
+        <div class="dashboard-grid">
+          <!-- Left Column: Today's Session Log & Goal Distribution -->
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <!-- Today's Client Session Log (Daily Exercises mockup style) -->
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="font-family:var(--font-display); font-weight:700;">Today's Session Schedule</h3>
+                <span id="dashboardTodayDate" style="font-size:12px; color:var(--primary); font-weight:600;"></span>
+              </div>
+              <div class="table-responsive" style="overflow-x:auto;">
+                <table class="session-log-table" style="width:100%; border-collapse:collapse; text-align:left;">
+                  <thead>
+                    <tr style="border-bottom:1px solid var(--border-color); color:var(--text-secondary); font-size:11px; text-transform:uppercase;">
+                      <th style="padding:10px 8px;">Client</th>
+                      <th style="padding:10px 8px;">Time</th>
+                      <th style="padding:10px 8px;">Workout Target</th>
+                      <th style="padding:10px 8px; text-align:right;">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dashboardTodaySessionsTableBody">
+                    <!-- Loaded dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            <!-- Goal Distribution Chart -->
+            <div class="card chart-card">
+              <div class="chart-header" style="margin-bottom: 12px;">
+                <h3 style="font-family:var(--font-display); font-weight:700;">Client Goal Distribution</h3>
+              </div>
+              <div style="position: relative; height: 240px; width: 100%;">
+                <canvas id="goalDistributionChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Smart Inactivity Alerts -->
+          <div class="dashboard-right-col" style="display:flex; flex-direction:column; gap:20px;">
+            <!-- Smart Inactivity Alerts Card -->
+            <div class="card">
+              <h3 style="font-family:var(--font-display); font-weight:700; margin-bottom:4px;">Smart Inactivity Alerts</h3>
+              <p style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 14px;">Active clients who haven't logged progress in the last 7 days</p>
+              <div id="inactiveAlertsList">
+                <p style="color: var(--text-muted); font-size: 13px;">No inactive clients needing attention.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. CLIENTS DIRECTORY PAGE -->
+      <section id="clients" class="page-section">
+        <div class="content-header">
+          <div class="header-title">
+            <h1>Clients Directory</h1>
+            <p>Manage and track all gym clients</p>
+          </div>
+          <button class="btn btn-primary" onclick="openAddClientModal()">
+            <i data-lucide="user-plus"></i> Add Client
+          </button>
+        </div>
+
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="search-bar-wrapper">
+            <input type="text" id="clientSearch" class="form-control" placeholder="Search clients by name, email or phone...">
+            <select id="filterGoal" class="form-control" style="max-width: 180px;">
+              <option value="All">All Goals</option>
+              <option value="Weight Loss">Weight Loss</option>
+              <option value="Weight Gain">Weight Gain</option>
+              <option value="Muscle Gain">Muscle Gain</option>
+              <option value="Maintenance">Maintenance</option>
+            </select>
+            <select id="filterStatus" class="form-control" style="max-width: 150px;">
+              <option value="All">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Skeleton Shimmer Loader -->
+        <div class="skeleton-container" id="clientListSkeleton" style="display: none;">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+
+        <div class="client-directory" id="clientList">
+          <!-- Dynamic Client Items will load here -->
+        </div>
+
+        <!-- Mobile Floating Action Button (FAB) -->
+        <button class="fab-btn" onclick="openAddClientModal()" title="Add New Client">
+          <i data-lucide="plus"></i>
+        </button>
+      </section>
+
+      <!-- 3. PROGRESS TRACKING PAGE -->
+      <section id="progress" class="page-section">
+        <div class="content-header">
+          <div class="header-title">
+            <h1>Progress Trends</h1>
+            <p>Track metrics, weights, and fat percentage logs</p>
+          </div>
+          <button class="btn btn-primary" id="btnLogProgress" style="display: none;" onclick="openAddProgressModal()">
+            <i data-lucide="plus-circle"></i> Log Progress
+          </button>
+        </div>
+
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="form-group" style="max-width: 400px; margin-bottom: 0;">
+            <label for="progressClientSelect">Select Client to View Progress</label>
+            <select id="progressClientSelect" class="form-control">
+              <option value="">-- Choose a Client --</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Charts & Logs Container -->
+        <div id="progressDataContainer" style="display: none;">
+          <div class="chart-toggle-group">
+            <button class="toggle-btn active" id="toggleMonthly">Monthly View (30d)</button>
+            <button class="toggle-btn" id="toggleWeekly">Weekly View (7d)</button>
+            <button class="toggle-btn" id="toggleAllTime">All Time</button>
+          </div>
+
+          <div class="charts-grid" style="margin-bottom: 24px;">
+            <div class="card">
+              <div class="chart-header">
+                <h3>Weight History Trend (kg)</h3>
+              </div>
+              <div style="position: relative; height: 300px; width: 100%;">
+                <canvas id="weightHistoryChart"></canvas>
+              </div>
+            </div>
+            <div class="card">
+              <div class="chart-header">
+                <h3>Body Fat Trend (%)</h3>
+              </div>
+              <div style="position: relative; height: 300px; width: 100%;">
+                <canvas id="fatHistoryChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h3>Progress Metric Logs</h3>
+              <button class="btn btn-primary btn-sm" onclick="openAddProgressModal()">Add Log</button>
+            </div>
+            <div class="history-logs-list" id="progressLogsList">
+              <!-- Logs will render here dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="progressEmptyState" style="text-align: center; padding: 60px 20px;">
+          <i data-lucide="trending-up" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 16px;"></i>
+          <h3>No Client Selected</h3>
+          <p style="color: var(--text-secondary); margin-top: 8px;">Please select a client from the dropdown above to view their logs and trends.</p>
+        </div>
+      </section>
+
+      <!-- 4. CALENDAR & SCHEDULE PAGE -->
+      <section id="calendar" class="page-section">
+        <div class="content-header">
+          <div class="header-title">
+            <h1>Coach Schedule</h1>
+            <p>Timetable & weekly session slots</p>
+          </div>
+          <button class="btn btn-primary" onclick="openScheduleModal()">
+            <i data-lucide="plus"></i> Book Session
+          </button>
+        </div>
+
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="timetable-header-controls" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 20px;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <button class="btn btn-secondary btn-sm" id="btnPrevWeek"><i data-lucide="chevron-left"></i></button>
+              <button class="btn btn-secondary btn-sm" id="btnCurrentWeek">This Week</button>
+              <button class="btn btn-secondary btn-sm" id="btnNextWeek"><i data-lucide="chevron-right"></i></button>
+            </div>
+            <h3 id="timetableWeekRange" style="font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--primary);">Loading Week...</h3>
+            <button class="btn btn-primary btn-sm" onclick="openScheduleModal()">
+              <i data-lucide="plus"></i> Add Timetable Slot
+            </button>
+          </div>
+
+          <!-- Availability Tag -->
+          <div style="margin-bottom:12px; font-size:12px; display:flex; gap:16px; align-items:center; color: var(--text-secondary);">
+            <span>Availability: <strong style="color: var(--secondary);">05:00 AM - 10:00 PM</strong></span>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <span style="display:inline-block; width:10px; height:10px; background:var(--primary); border-radius: 2px;"></span>
+              <span>Completed</span>
+              <span style="display:inline-block; width:10px; height:10px; background:var(--alert); border-radius: 2px;"></span>
+              <span>Upcoming</span>
+              <span style="display:inline-block; width:10px; height:10px; background:var(--danger); border-radius: 2px;"></span>
+              <span>Missed/Special</span>
+            </div>
+          </div>
+
+          <!-- Calmendar Style Timetable Scroll Container -->
+          <div class="timetable-scroll-container">
+            <table class="timetable-grid-table">
+              <thead>
+                <tr class="timetable-header-row">
+                  <th style="width: 110px;">Time</th>
+                  <th data-day-col="1">Mon <span class="day-date" id="dateCol1"></span></th>
+                  <th data-day-col="2">Tue <span class="day-date" id="dateCol2"></span></th>
+                  <th data-day-col="3">Wed <span class="day-date" id="dateCol3"></span></th>
+                  <th data-day-col="4">Thu <span class="day-date" id="dateCol4"></span></th>
+                  <th data-day-col="5">Fri <span class="day-date" id="dateCol5"></span></th>
+                  <th data-day-col="6">Sat <span class="day-date" id="dateCol6"></span></th>
+                  <th data-day-col="7">Sun <span class="day-date" id="dateCol7"></span></th>
+                </tr>
+              </thead>
+              <tbody id="timetableBody">
+                <!-- Dynamic timetable rows loaded via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. MESSAGING SYSTEM PAGE -->
+      <section id="messages" class="page-section">
+        <div class="content-header">
+          <div class="header-title">
+            <h1>WhatsApp Alerts</h1>
+            <p>Direct communication with clients</p>
+          </div>
+        </div>
+
+        <div class="messages-layout">
+          <!-- Left Panel: Compose Message -->
+          <div class="card">
+            <h3>Send Client Alert</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">Choose a template or write a custom message</p>
+
+            <form id="sendMessageForm">
+              <div class="form-group">
+                <label for="msgClient">Recipient Client</label>
+                <select id="msgClient" class="form-control" required>
+                  <option value="">-- Choose a Client --</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Predefined Message Templates</label>
+                <div class="templates-grid">
+                  <button type="button" class="template-card" onclick="applyTemplate('Diet')">
+                    <h4>Diet Reminder</h4>
+                    <p>"Hey [Name], remember to hit your protein target and log meals today!"</p>
+                  </button>
+                  <button type="button" class="template-card" onclick="applyTemplate('Workout')">
+                    <h4>Workout Goal</h4>
+                    <p>"Great effort lately! Do not skip your workout routine today."</p>
+                  </button>
+                  <button type="button" class="template-card" onclick="applyTemplate('Session Reminder')">
+                    <h4>Session Check-in</h4>
+                    <p>"Hi [Name], reminding you of our training session scheduled tomorrow."</p>
+                  </button>
+                  <button type="button" class="template-card" onclick="applyTemplate('Hydration')">
+                    <h4>Hydration Alert</h4>
+                    <p>"Make sure you are drinking at least 3-4 liters of water today!"</p>
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="msgBody">Message Text</label>
+                <textarea id="msgBody" class="form-control" rows="4" required placeholder="Type your message here..."></textarea>
+              </div>
+              <input type="hidden" id="msgTemplateType" value="Custom">
+              <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i data-lucide="send"></i> Send on WhatsApp
+              </button>
+            </form>
+          </div>
+
+          <!-- Right Panel: Message History Logs (Chat-style bubbles) -->
+          <div class="card" style="display:flex; flex-direction:column; height: 600px;">
+            <h3>Sent Notifications History</h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">Review recent communications</p>
+            
+            <div class="chat-thread-container" id="messageLogsList">
+              <!-- Rendered dynamically as chat bubbles -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- --- TOAST CONTAINER FOR CUSTOM NOTIFICATIONS --- -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- --- MODALS & FORMS OVERLAYS --- -->
+
+  <!-- Custom Confirmation Modal Overlay -->
+  <div class="modal-overlay" id="confirmModal">
+    <div class="modal-content" style="max-width: 400px; border-radius: 16px;">
+      <div class="modal-header">
+        <h2 id="confirmTitle">Confirm Action</h2>
+        <button class="close-btn" onclick="closeCustomConfirm()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px 24px;">
+        <p id="confirmMessage" style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeCustomConfirm()">Cancel</button>
+        <button class="btn btn-danger" id="confirmYesBtn">Yes, Proceed</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Session Detail Modal (Added for reviewing schedule slots details + Cancel option) -->
+  <div class="modal-overlay" id="sessionDetailModal">
+    <div class="modal-content" style="max-width: 400px; border-radius: 16px;">
+      <div class="modal-header">
+        <h2>Workout Session Details</h2>
+        <button class="close-btn" onclick="closeSessionDetailModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 20px 24px;">
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div>
+            <span style="font-size:10px; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Client Name</span>
+            <strong id="sessDetClientName" style="font-size:16px; color:var(--primary);">John Doe</strong>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <span style="font-size:10px; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Day of Week</span>
+              <span id="sessDetDay" style="font-size:13px; font-weight:600;">Monday</span>
+            </div>
+            <div>
+              <span style="font-size:10px; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Scheduled Time</span>
+              <span id="sessDetTime" style="font-size:13px; font-weight:600; color:var(--primary);">08:30 AM</span>
+            </div>
+          </div>
+          <div>
+            <span style="font-size:10px; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Workout Focus / Notes</span>
+            <p id="sessDetNotes" style="font-size:13px; color:var(--text-primary); line-height:1.4; background:rgba(255,255,255,0.02); border:1px solid var(--border-color); padding:10px; border-radius:8px;">Upper Body focus</p>
+          </div>
+          <div>
+            <span style="font-size:10px; text-transform:uppercase; color:var(--text-secondary); display:block; margin-bottom:2px;">Session Status</span>
+            <span class="badge" id="sessDetStatusBadge" style="margin-top:2px; display:inline-block;">Upcoming</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%;">
+        <button class="btn btn-danger btn-sm" id="btnCancelSessionAction">
+          <i data-lucide="trash-2" style="width:12px; height:12px;"></i> Cancel Workout
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="closeSessionDetailModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logout Confirmation Modal Overlay -->
+  <div class="modal-overlay" id="logoutConfirmModal">
+    <div class="modal-content" style="max-width: 380px; border-radius: 16px;">
+      <div class="modal-header">
+        <h2>Confirm Logout</h2>
+      </div>
+      <div class="modal-body" style="padding: 20px 24px;">
+        <p style="color: var(--text-secondary); font-size: 14px;">Are you sure you want to log out of PulseFit?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeLogoutModal()">Cancel</button>
+        <button class="btn btn-danger" id="btnConfirmLogout">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 1: Add/Edit Client Form -->
+  <div class="modal-overlay" id="clientFormModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="clientModalTitle">Add New Client</h2>
+        <button class="close-btn" onclick="closeClientFormModal()">&times;</button>
+      </div>
+      <form id="clientForm">
+        <input type="hidden" id="formClientId">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="clientName">Full Name</label>
+              <input type="text" id="clientName" class="form-control" required placeholder="John Doe">
+            </div>
+            <div class="form-group">
+              <label for="clientAge">Age</label>
+              <input type="number" id="clientAge" class="form-control" required placeholder="25">
+            </div>
+            <div class="form-group">
+              <label for="clientGender">Gender</label>
+              <select id="clientGender" class="form-control" required>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Non-binary">Non-binary</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="clientGoal">Fitness Goal</label>
+              <select id="clientGoal" class="form-control" required>
+                <option value="Weight Loss">Weight Loss</option>
+                <option value="Weight Gain">Weight Gain</option>
+                <option value="Muscle Gain">Muscle Gain</option>
+                <option value="Maintenance">Maintenance</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="clientHeight">Height (cm)</label>
+              <input type="number" id="clientHeight" class="form-control" required placeholder="175" step="0.1">
+            </div>
+            <div class="form-group">
+              <label for="clientWeight">Weight (kg)</label>
+              <input type="number" id="clientWeight" class="form-control" required placeholder="70" step="0.1">
+            </div>
+            <div class="form-group">
+              <label for="clientBodyFat">Body Fat Percentage (%)</label>
+              <input type="number" id="clientBodyFat" class="form-control" required placeholder="18" step="0.1">
+            </div>
+            <div class="form-group">
+              <label for="clientBmi">BMI (Auto-calculated)</label>
+              <input type="text" id="clientBmi" class="form-control" disabled placeholder="Will auto-calculate">
+            </div>
+            <div class="form-group">
+              <label for="clientPhone">Phone Number</label>
+              <input type="text" id="clientPhone" class="form-control" required placeholder="+15550199">
+            </div>
+            <div class="form-group">
+              <label for="clientEmail">Email Address</label>
+              <input type="email" id="clientEmail" class="form-control" required placeholder="client@example.com">
+            </div>
+            <div class="form-group">
+              <label for="clientJoinDate">Join Date</label>
+              <input type="date" id="clientJoinDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="clientStatus">Account Status</label>
+              <select id="clientStatus" class="form-control">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <div class="form-group full-width">
+              <label for="clientReportFile">Client Document / Medical Report (Optional)</label>
+              <input type="file" id="clientReportFile" class="form-control" accept="image/*,application/pdf">
+            </div>
+            <div class="form-group full-width">
+              <label for="clientMedical">Medical Conditions / Injuries / Restrictions</label>
+              <textarea id="clientMedical" class="form-control" rows="3" placeholder="Slight asthma, knee discomfort, none, etc."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeClientFormModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Client</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 2: Client Profile / Detail Modal -->
+  <div class="modal-overlay" id="clientDetailModal">
+    <div class="modal-content" style="max-width: 800px; border-radius: 20px;">
+      <div class="modal-header">
+        <h2>Client Details Profile</h2>
+        <button class="close-btn" onclick="closeClientDetailModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="client-details-grid">
+          <!-- Profile sidebar -->
+          <div class="client-sidebar-card card">
+            <div class="client-avatar-large" id="detAvatar">JD</div>
+            <h2 id="detName">Loading...</h2>
+            <div style="display:flex; justify-content:center; gap: 8px; margin: 6px 0;">
+              <div class="badge badge-goal" id="detGoalBadge">Goal</div>
+              <div class="badge badge-active" id="detStatusBadge">Active</div>
+            </div>
+            
+            <ul class="profile-info-list">
+              <li><span>Age</span><span id="detAge">-</span></li>
+              <li><span>Gender</span><span id="detGender">-</span></li>
+              <li><span>Height</span><span id="detHeight">-</span></li>
+              <li><span>Weight</span><span id="detWeight">-</span></li>
+              <li><span>Body Fat</span><span id="detBodyFat">-</span></li>
+              <li><span>BMI</span><span id="detBmi">-</span></li>
+              <li><span>Contact</span><span id="detPhone">-</span></li>
+              <li><span>Email</span><span id="detEmail">-</span></li>
+              <li><span>Join Date</span><span id="detJoinDate">-</span></li>
+            </ul>
+
+            <div style="margin-top: 20px; display: flex; gap: 8px;">
+              <button class="btn btn-secondary btn-sm" id="btnEditClientDetails" style="flex: 1;">
+                <i data-lucide="edit"></i> Edit
+              </button>
+              <button class="btn btn-danger btn-sm" id="btnDeleteClient" style="flex: 1;">
+                <i data-lucide="trash-2"></i> Delete
+              </button>
+            </div>
+          </div>
+
+          <!-- Tabs panel -->
+          <div>
+            <div class="client-detail-tabs">
+              <button class="client-tab-btn active" data-profile-tab="medical">Medical</button>
+              <button class="client-tab-btn" data-profile-tab="reports">Reports</button>
+              <button class="client-tab-btn" data-profile-tab="sessions">Sessions</button>
+            </div>
+
+            <!-- Tab content: Medical -->
+            <div class="tab-pane active" id="profTabMedical">
+              <div class="card" style="background: rgba(0,0,0,0.15);">
+                <h4>Medical Conditions & Notes</h4>
+                <p id="detMedical" style="margin-top: 8px; color: var(--text-secondary); font-size: 14px; line-height: 1.5; white-space: pre-wrap;">
+                  No medical conditions logged.
+                </p>
+              </div>
+            </div>
+
+            <!-- Tab content: Reports -->
+            <div class="tab-pane" id="profTabReports">
+              <div class="file-upload-zone" id="reportUploadZone" style="margin-bottom: 20px; padding: 20px;">
+                <i class="upload-icon" data-lucide="upload-cloud"></i>
+                <p style="font-size: 14px; font-weight: 500;">Click to upload document/report</p>
+                <input type="file" id="reportFileInput" style="display: none;" accept="image/*,application/pdf">
+              </div>
+
+              <h4>Documents</h4>
+              <div id="reportsList" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                <!-- list of documents -->
+              </div>
+            </div>
+
+            <!-- Tab content: Sessions -->
+            <div class="tab-pane" id="profTabSessions">
+              <h4>Scheduled Workouts</h4>
+              <div id="clientSessionsList" style="margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                <!-- list of scheduled client sessions -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Log New Progress Form -->
+  <div class="modal-overlay" id="progressFormModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Log Progress Metric</h2>
+        <button class="close-btn" onclick="closeProgressFormModal()">&times;</button>
+      </div>
+      <form id="progressForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="progDate">Log Date</label>
+            <input type="date" id="progDate" class="form-control" required>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="progWeight">Weight (kg)</label>
+              <input type="number" id="progWeight" class="form-control" required placeholder="75" step="0.1">
+            </div>
+            <div class="form-group">
+              <label for="progBodyFat">Body Fat (%)</label>
+              <input type="number" id="progBodyFat" class="form-control" required placeholder="18" step="0.1">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="progReportFile">Attach Document / Scan (Optional)</label>
+            <input type="file" id="progReportFile" class="form-control" accept="image/*,application/pdf">
+          </div>
+          <div class="form-group">
+            <label for="progNotes">Notes</label>
+            <textarea id="progNotes" class="form-control" rows="2" placeholder="e.g. Feeling strong, diet followed closely."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeProgressFormModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 4: Full Calendar Schedule Form -->
+  <div class="modal-overlay" id="scheduleModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Schedule Workout Session</h2>
+        <button class="close-btn" onclick="closeScheduleModal()">&times;</button>
+      </div>
+      <form id="modalScheduleForm">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="modalSchedClient">Client</label>
+            <select id="modalSchedClient" class="form-control" required>
+              <option value="">-- Choose a Client --</option>
+            </select>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="modalSchedDay">Day of Week</label>
+              <select id="modalSchedDay" class="form-control" required>
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+                <option value="6">Saturday</option>
+                <option value="7">Sunday</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="modalSchedTime">Time</label>
+              <input type="time" id="modalSchedTime" class="form-control" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="modalSchedNotes">Workout Target / Notes</label>
+            <input type="text" id="modalSchedNotes" class="form-control" placeholder="e.g. Upper Body Hypertrophy">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeScheduleModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Session</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js?v=1.2"></script>
+</body>
+</html>
