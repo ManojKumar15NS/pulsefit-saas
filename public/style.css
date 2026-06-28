@@ -1482,3 +1482,7 @@ button, .btn, .tabbar-item, .mobile-day-btn, .tab-btn, .form-control {
 .timetable-session-card.status-upcoming {
   border-left: 4px solid #6b7280 !important;
 }
+
+#confirmModal, #logoutConfirmModal {
+  z-index: 2200 !important;
+}

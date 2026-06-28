@@ -801,6 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast(isEdit ? 'Client updated successfully!' : 'New client added successfully!');
         loadClientsData();
         loadDashboardData();
+        loadCalendarData();
         if (isEdit) {
           closeClientDetailModal();
         }
@@ -901,6 +902,7 @@ document.addEventListener('DOMContentLoaded', () => {
       closeClientDetailModal();
       loadClientsData();
       loadDashboardData();
+      loadCalendarData();
     } else {
       showToast('Failed to delete client.', 'error');
     }
