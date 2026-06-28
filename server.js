@@ -170,6 +170,26 @@ const dbGet = async (query, params = []) => {
 
       console.log("PostgreSQL database seeded successfully!");
     }
+
+    // Run table migrations to add body composition, package details, and rescheduling audits
+    try {
+      await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS visceral_fat REAL DEFAULT 0.0");
+      await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS muscle_mass REAL DEFAULT 0.0");
+      await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS water_level REAL DEFAULT 0.0");
+      await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS package_type VARCHAR(50)");
+      await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS amount_paid DECIMAL(10,2) DEFAULT 0.0");
+      await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS start_date VARCHAR(50)");
+      await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS end_date VARCHAR(50)");
+      await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS preferred_days VARCHAR(100)");
+      await dbRun("ALTER TABLE clients ADD COLUMN IF NOT EXISTS preferred_time VARCHAR(50)");
+      
+      // Update sessions table
+      await dbRun("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS session_date VARCHAR(50)");
+      await dbRun("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'upcoming'");
+      await dbRun("ALTER TABLE sessions ADD COLUMN IF NOT EXISTS original_date VARCHAR(50)");
+    } catch (migErr) {
+      console.log("Database migrations check warning:", migErr.message);
+    }
   } catch (err) {
     console.error("PostgreSQL database initialization error:", err.message);
   }
@@ -366,25 +386,96 @@ app.get('/api/clients/:id', async (req, res) => {
   }
 });
 
+// Smart scheduling auto-generation engine helper
+const generateClientSessions = async (client_id, start_date, end_date, preferred_time, preferred_days, package_type) => {
+  try {
+    // Delete existing upcoming sessions to prevent overrides
+    await dbRun("DELETE FROM sessions WHERE client_id = ? AND session_date >= ? AND status = 'upcoming'", [client_id, start_date]);
+
+    let sessionsCount = 12; // Default Silver alternate
+    if (package_type === 'Gold') sessionsCount = 20;
+    else if (package_type === 'Platinum') sessionsCount = 30;
+
+    const daysAllowed = preferred_days ? preferred_days.split(',').map(Number) : [1, 3, 5];
+    const generated = [];
+    let currentDate = new Date(start_date);
+    const stopDate = new Date(end_date);
+    let scheduledCount = 0;
+    let safety = 0;
+
+    while (scheduledCount < sessionsCount && currentDate <= stopDate && safety < 150) {
+      safety++;
+      const jsDay = currentDate.getDay();
+      const currentDayNum = jsDay === 0 ? 7 : jsDay;
+
+      if (daysAllowed.includes(currentDayNum)) {
+        const formattedDate = currentDate.toISOString().split('T')[0];
+        generated.push({
+          client_id,
+          session_date: formattedDate,
+          session_time: preferred_time || '07:00',
+          status: 'upcoming',
+          notes: `${package_type} Package Workout`
+        });
+        scheduledCount++;
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    for (const session of generated) {
+      const sDay = new Date(session.session_date).getDay();
+      const legacyDay = sDay === 0 ? 7 : sDay;
+
+      await dbRun(
+        `INSERT INTO sessions (client_id, day_of_week, session_time, notes, session_date, status) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [session.client_id, legacyDay, session.session_time, session.notes, session.session_date, session.status]
+      );
+    }
+    return scheduledCount;
+  } catch (genErr) {
+    console.error("Auto-scheduling generator warning:", genErr.message);
+  }
+};
+
 app.post('/api/clients', async (req, res) => {
   try {
-    const { name, age, gender, height, weight, body_fat, medical_conditions, fitness_goal, phone, email, join_date, status } = req.body;
-    const heightInMeters = height / 100;
-    const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(1);
+    const { 
+      name, age, gender, height, weight, body_fat, medical_conditions, fitness_goal, phone, email, join_date, status,
+      bmi, visceral_fat, muscle_mass, water_level, package_type, amount_paid, start_date, end_date, preferred_days, preferred_time
+    } = req.body;
+
+    const heightInMeters = parseFloat(height) / 100;
+    const computedBmi = bmi ? parseFloat(bmi) : (parseFloat(weight) / (heightInMeters * heightInMeters)).toFixed(1);
 
     const result = await dbRun(
-      `INSERT INTO clients (name, age, gender, height, weight, body_fat, bmi, medical_conditions, fitness_goal, phone, email, status, join_date, trainer_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, parseInt(age), gender, parseFloat(height), parseFloat(weight), parseFloat(body_fat), parseFloat(bmi), medical_conditions, fitness_goal, phone, email, status || 'active', join_date, req.trainerId]
+      `INSERT INTO clients (
+        name, age, gender, height, weight, body_fat, bmi, medical_conditions, fitness_goal, phone, email, status, join_date, trainer_id,
+        visceral_fat, muscle_mass, water_level, package_type, amount_paid, start_date, end_date, preferred_days, preferred_time
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        name, parseInt(age), gender, parseFloat(height), parseFloat(weight), parseFloat(body_fat), parseFloat(computedBmi), 
+        medical_conditions, fitness_goal, phone, email, status || 'active', join_date, req.trainerId,
+        parseFloat(visceral_fat || 0), parseFloat(muscle_mass || 0), parseFloat(water_level || 0),
+        package_type || null, amount_paid ? parseFloat(amount_paid) : 0, 
+        start_date || null, end_date || null, preferred_days || null, preferred_time || null
+      ]
     );
 
-    // Initial log entry
+    const newClientId = result.lastID;
+
+    // Initial progress log entry
     await dbRun(
-      `INSERT INTO progress_logs (client_id, date, weight, body_fat, bmi, notes) VALUES (?, ?, ?, ?, ?, ?)`,
-      [result.lastID, join_date, parseFloat(weight), parseFloat(body_fat), parseFloat(bmi), 'Initial assessment log.']
+      `INSERT INTO progress_logs (client_id, date, weight, body_fat, bmi, visceral_fat, muscle_mass, water_level, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [newClientId, join_date, parseFloat(weight), parseFloat(body_fat), parseFloat(computedBmi), parseFloat(visceral_fat || 0), parseFloat(muscle_mass || 0), parseFloat(water_level || 0), 'Initial evaluation logs.']
     );
 
-    res.status(201).json({ id: result.lastID, bmi });
+    // Auto-generate scheduling sessions
+    if (package_type && start_date && end_date) {
+      await generateClientSessions(newClientId, start_date, end_date, preferred_time, preferred_days, package_type);
+    }
+
+    res.status(201).json({ id: newClientId, bmi: computedBmi });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -395,17 +486,41 @@ app.put('/api/clients/:id', async (req, res) => {
     const clientExists = await dbGet("SELECT id FROM clients WHERE id = ? AND trainer_id = ?", [req.params.id, req.trainerId]);
     if (!clientExists) return res.status(404).json({ error: "Client not found" });
 
-    const { name, age, gender, height, weight, body_fat, medical_conditions, fitness_goal, phone, email, status, join_date } = req.body;
-    const heightInMeters = height / 100;
-    const bmi = (weight / (heightInMeters * heightInMeters)).toFixed(1);
+    const { 
+      name, age, gender, height, weight, body_fat, medical_conditions, fitness_goal, phone, email, status, join_date,
+      bmi, visceral_fat, muscle_mass, water_level, package_type, amount_paid, start_date, end_date, preferred_days, preferred_time
+    } = req.body;
+
+    const heightInMeters = parseFloat(height) / 100;
+    const computedBmi = bmi ? parseFloat(bmi) : (parseFloat(weight) / (heightInMeters * heightInMeters)).toFixed(1);
 
     await dbRun(
-      `UPDATE clients SET name = ?, age = ?, gender = ?, height = ?, weight = ?, body_fat = ?, bmi = ?, medical_conditions = ?, fitness_goal = ?, phone = ?, email = ?, status = ?, join_date = ?
+      `UPDATE clients SET 
+        name = ?, age = ?, gender = ?, height = ?, weight = ?, body_fat = ?, bmi = ?, medical_conditions = ?, fitness_goal = ?, phone = ?, email = ?, status = ?, join_date = ?,
+        visceral_fat = ?, muscle_mass = ?, water_level = ?, package_type = ?, amount_paid = ?, start_date = ?, end_date = ?, preferred_days = ?, preferred_time = ?
        WHERE id = ? AND trainer_id = ?`,
-      [name, parseInt(age), gender, parseFloat(height), parseFloat(weight), parseFloat(body_fat), parseFloat(bmi), medical_conditions, fitness_goal, phone, email, status, join_date, req.params.id, req.trainerId]
+      [
+        name, parseInt(age), gender, parseFloat(height), parseFloat(weight), parseFloat(body_fat), parseFloat(computedBmi), 
+        medical_conditions, fitness_goal, phone, email, status, join_date,
+        parseFloat(visceral_fat || 0), parseFloat(muscle_mass || 0), parseFloat(water_level || 0),
+        package_type || null, amount_paid ? parseFloat(amount_paid) : 0, 
+        start_date || null, end_date || null, preferred_days || null, preferred_time || null,
+        req.params.id, req.trainerId
+      ]
     );
 
-    res.json({ success: true, bmi });
+    // Sync metric to progress logs
+    await dbRun(
+      `INSERT INTO progress_logs (client_id, date, weight, body_fat, bmi, visceral_fat, muscle_mass, water_level, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [req.params.id, join_date, parseFloat(weight), parseFloat(body_fat), parseFloat(computedBmi), parseFloat(visceral_fat || 0), parseFloat(muscle_mass || 0), parseFloat(water_level || 0), 'Profile metric sync update.']
+    );
+
+    // Re-trigger schedule updates
+    if (package_type && start_date && end_date) {
+      await generateClientSessions(req.params.id, start_date, end_date, preferred_time, preferred_days, package_type);
+    }
+
+    res.json({ success: true, bmi: computedBmi });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -553,7 +668,7 @@ app.get('/api/schedule', async (req, res) => {
        FROM sessions s 
        JOIN clients c ON s.client_id = c.id 
        WHERE c.trainer_id = ?
-       ORDER BY s.day_of_week ASC, s.session_time ASC`,
+       ORDER BY s.session_date ASC, s.day_of_week ASC, s.session_time ASC`,
       [req.trainerId]
     );
     res.json(sessions);
@@ -564,15 +679,63 @@ app.get('/api/schedule', async (req, res) => {
 
 app.post('/api/schedule', async (req, res) => {
   try {
-    const { client_id, day_of_week, session_time, notes } = req.body;
+    const { client_id, day_of_week, session_time, notes, session_date } = req.body;
     const clientExists = await dbGet("SELECT id FROM clients WHERE id = ? AND trainer_id = ?", [client_id, req.trainerId]);
     if (!clientExists) return res.status(401).json({ error: "Unauthorized client booking" });
 
+    // Fallback date calculations if session_date not sent
+    let sDate = session_date;
+    if (!sDate) {
+      sDate = new Date().toISOString().split('T')[0];
+    }
+
     const result = await dbRun(
-      `INSERT INTO sessions (client_id, day_of_week, session_time, notes) VALUES (?, ?, ?, ?)`,
-      [client_id, parseInt(day_of_week), session_time, notes]
+      `INSERT INTO sessions (client_id, day_of_week, session_time, notes, session_date, status) VALUES (?, ?, ?, ?, ?, 'upcoming')`,
+      [client_id, parseInt(day_of_week), session_time, notes, sDate]
     );
     res.status(201).json({ id: result.lastID });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/schedule/:id/status', async (req, res) => {
+  try {
+    const { status } = req.body;
+    const session = await dbGet("SELECT client_id FROM sessions WHERE id = ?", [req.params.id]);
+    if (!session) return res.status(404).json({ error: "Session not found" });
+
+    const clientExists = await dbGet("SELECT id FROM clients WHERE id = ? AND trainer_id = ?", [session.client_id, req.trainerId]);
+    if (!clientExists) return res.status(401).json({ error: "Unauthorized access" });
+
+    await dbRun("UPDATE sessions SET status = ? WHERE id = ?", [status, req.params.id]);
+    res.json({ success: true, status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/schedule/:id/reschedule', async (req, res) => {
+  try {
+    const { session_date, session_time, notes } = req.body;
+    const session = await dbGet("SELECT * FROM sessions WHERE id = ?", [req.params.id]);
+    if (!session) return res.status(404).json({ error: "Session not found" });
+
+    const clientExists = await dbGet("SELECT id FROM clients WHERE id = ? AND trainer_id = ?", [session.client_id, req.trainerId]);
+    if (!clientExists) return res.status(401).json({ error: "Unauthorized access" });
+
+    const originalDate = session.original_date || session.session_date || '';
+
+    const sDay = new Date(session_date).getDay();
+    const legacyDay = sDay === 0 ? 7 : sDay;
+
+    await dbRun(
+      `UPDATE sessions SET session_date = ?, session_time = ?, day_of_week = ?, original_date = ?, status = 'rescheduled', notes = COALESCE(?, notes)
+       WHERE id = ?`,
+      [session_date, session_time, legacyDay, originalDate, notes || null, req.params.id]
+    );
+
+    res.json({ success: true, session_date, session_time, original_date: originalDate });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -584,7 +747,7 @@ app.get('/api/clients/:id/sessions', async (req, res) => {
     if (!clientExists) return res.status(404).json({ error: "Client not found" });
 
     const sessions = await dbAll(
-      `SELECT * FROM sessions WHERE client_id = ? ORDER BY day_of_week ASC, session_time ASC`,
+      `SELECT * FROM sessions WHERE client_id = ? ORDER BY session_date ASC, day_of_week ASC, session_time ASC`,
       [req.params.id]
     );
     res.json(sessions);

@@ -1440,3 +1440,49 @@ button, .btn, .tabbar-item, .mobile-day-btn, .tab-btn, .form-control {
     min-height: 44px !important;
   }
 }
+
+/* Membership Package Card & Day Pill Selectors */
+.package-card {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  text-align: center;
+}
+.package-card:hover {
+  border-color: var(--primary);
+  background: rgba(76, 175, 80, 0.05);
+}
+.day-pill-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+.day-pill-btn:hover {
+  border-color: var(--primary);
+  color: var(--text-primary);
+}
+
+/* Slide-up sheet overlays */
+.attendance-sheet-content {
+  box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
+  box-sizing: border-box;
+}
+
+/* Calendar Card Status Styles */
+.timetable-session-card.status-completed {
+  border-left: 3px solid var(--primary) !important;
+  background: rgba(76, 175, 80, 0.06) !important;
+}
+.timetable-session-card.status-missed {
+  border-left: 3px solid #ef4444 !important;
+  background: rgba(239, 68, 68, 0.06) !important;
+}
+.timetable-session-card.status-rescheduled {
+  border-left: 3px solid #f59e0b !important;
+  background: rgba(245, 158, 11, 0.06) !important;
+}
+.timetable-session-card.status-upcoming {
+  border-left: 3px solid var(--text-secondary) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+}

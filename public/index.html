@@ -597,8 +597,76 @@
               <input type="number" id="clientBodyFat" class="form-control" required placeholder="18" step="0.1">
             </div>
             <div class="form-group">
-              <label for="clientBmi">BMI (Auto-calculated)</label>
-              <input type="text" id="clientBmi" class="form-control" disabled placeholder="Will auto-calculate">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label for="clientBmi">BMI (Manual)</label>
+                <span id="clientBmiCategoryLabel" style="font-size:10px; color:var(--primary); font-weight:700;"></span>
+              </div>
+              <input type="number" id="clientBmi" class="form-control" placeholder="Enter BMI" step="0.1" required>
+            </div>
+            <div class="form-group">
+              <label for="clientVisceralFat">Visceral Fat</label>
+              <input type="number" id="clientVisceralFat" class="form-control" placeholder="Visceral fat level" step="0.1" required>
+            </div>
+            <div class="form-group">
+              <label for="clientMuscleMass">Muscle Mass (kg)</label>
+              <input type="number" id="clientMuscleMass" class="form-control" placeholder="Muscle mass" step="0.1" required>
+            </div>
+            <div class="form-group">
+              <label for="clientWaterLevel">Water Level / Body Water %</label>
+              <input type="number" id="clientWaterLevel" class="form-control" placeholder="Water level %" step="0.1" required>
+            </div>
+            
+            <!-- Membership Package Section -->
+            <div class="form-group full-width" style="margin-top:10px;">
+              <label style="font-weight:700; margin-bottom:8px; display:block;">Membership Package Tier</label>
+              <div class="package-selector-container" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(110px, 1fr)); gap:10px;">
+                <div class="package-card" id="pkgCardSilver" style="border:1px solid var(--border-color); border-radius:12px; padding:12px; cursor:pointer; text-align:center; transition:all 0.2s;" onclick="selectFormPackage('Silver', 99)">
+                  <strong style="color:var(--primary); font-size:13px; text-transform:uppercase;">Silver</strong>
+                  <span style="font-size:10px; color:var(--text-secondary); display:block; margin-top:4px;">12 Sessions / Month</span>
+                </div>
+                <div class="package-card" id="pkgCardGold" style="border:1px solid var(--border-color); border-radius:12px; padding:12px; cursor:pointer; text-align:center; transition:all 0.2s;" onclick="selectFormPackage('Gold', 149)">
+                  <strong style="color:var(--primary); font-size:13px; text-transform:uppercase;">Gold</strong>
+                  <span style="font-size:10px; color:var(--text-secondary); display:block; margin-top:4px;">20 Sessions / Month</span>
+                </div>
+                <div class="package-card" id="pkgCardPlatinum" style="border:1px solid var(--border-color); border-radius:12px; padding:12px; cursor:pointer; text-align:center; transition:all 0.2s;" onclick="selectFormPackage('Platinum', 199)">
+                  <strong style="color:var(--primary); font-size:13px; text-transform:uppercase;">Platinum</strong>
+                  <span style="font-size:10px; color:var(--text-secondary); display:block; margin-top:4px;">30 Sessions / Month</span>
+                </div>
+              </div>
+              <input type="hidden" id="clientPackageType">
+            </div>
+
+            <div class="form-group">
+              <label for="clientAmountPaid">Amount Paid ($)</label>
+              <input type="number" id="clientAmountPaid" class="form-control" placeholder="Price paid" step="0.01">
+            </div>
+            <div class="form-group">
+              <label for="clientStartDate">Package Start Date</label>
+              <input type="date" id="clientStartDate" class="form-control">
+            </div>
+            <div class="form-group full-width">
+              <label for="clientEndDate">Package End Date</label>
+              <input type="date" id="clientEndDate" class="form-control">
+            </div>
+
+            <!-- Smart Scheduling Pattern Section -->
+            <div class="form-group full-width" id="preferredDaysSection" style="display:none; margin-top:10px;">
+              <label style="font-weight:700; margin-bottom:6px; display:block;">Preferred Weekly Days</label>
+              <div class="days-pills-container" style="display:flex; gap:8px; overflow-x:auto; padding:6px 0; scrollbar-width:none; -webkit-overflow-scrolling:touch;">
+                <span class="day-pill-btn" data-day="1" onclick="toggleFormDay(1)" style="min-height:44px; min-width:58px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border-color); border-radius:50px; font-size:12px; font-weight:600; cursor:pointer; user-select:none; transition:all 0.2s;">Mon</span>
+                <span class="day-pill-btn" data-day="2" onclick="toggleFormDay(2)" style="min-height:44px; min-width:58px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border-color); border-radius:50px; font-size:12px; font-weight:600; cursor:pointer; user-select:none; transition:all 0.2s;">Tue</span>
+                <span class="day-pill-btn" data-day="3" onclick="toggleFormDay(3)" style="min-height:44px; min-width:58px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border-color); border-radius:50px; font-size:12px; font-weight:600; cursor:pointer; user-select:none; transition:all 0.2s;">Wed</span>
+                <span class="day-pill-btn" data-day="4" onclick="toggleFormDay(4)" style="min-height:44px; min-width:58px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border-color); border-radius:50px; font-size:12px; font-weight:600; cursor:pointer; user-select:none; transition:all 0.2s;">Thu</span>
+                <span class="day-pill-btn" data-day="5" onclick="toggleFormDay(5)" style="min-height:44px; min-width:58px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border-color); border-radius:50px; font-size:12px; font-weight:600; cursor:pointer; user-select:none; transition:all 0.2s;">Fri</span>
+                <span class="day-pill-btn" data-day="6" onclick="toggleFormDay(6)" style="min-height:44px; min-width:58px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border-color); border-radius:50px; font-size:12px; font-weight:600; cursor:pointer; user-select:none; transition:all 0.2s;">Sat</span>
+                <span class="day-pill-btn" data-day="7" onclick="toggleFormDay(7)" style="min-height:44px; min-width:58px; display:inline-flex; align-items:center; justify-content:center; border:1px solid var(--border-color); border-radius:50px; font-size:12px; font-weight:600; cursor:pointer; user-select:none; transition:all 0.2s;">Sun</span>
+              </div>
+              <div id="schedulePatternWarning" style="color:var(--alert-color); font-size:11px; margin-top:6px; font-weight:600;"></div>
+            </div>
+
+            <div class="form-group" id="preferredTimeSection" style="display:none;">
+              <label for="clientPreferredTime">Preferred Training Time</label>
+              <input type="time" id="clientPreferredTime" class="form-control" value="07:00">
             </div>
             <div class="form-group">
               <label for="clientPhone">Phone Number</label>
@@ -805,6 +873,46 @@
           <button type="submit" class="btn btn-primary">Save Session</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Attendance Quick Action Bottom Sheet Overlay -->
+  <div class="modal-overlay" id="attendanceSheetOverlay" style="align-items: flex-end;">
+    <div class="attendance-sheet-content" style="width:100%; max-width:420px; background:var(--bg-card); border-top:1px solid var(--border-color); border-radius:24px 24px 0 0; padding:20px; box-sizing:border-box; animation:slideUpSheet 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+      <div style="width:40px; height:4px; background:rgba(255,255,255,0.15); border-radius:2px; margin:0 auto 16px auto;"></div>
+      <h3 id="attendanceSheetClientName" style="margin:0 0 6px 0; font-size:16px; font-weight:700; text-align:center; color:var(--text-primary);">Client Name</h3>
+      <p id="attendanceSheetTime" style="margin:0 0 20px 0; font-size:12px; color:var(--text-secondary); text-align:center;">08:00 AM</p>
+      
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <button class="btn btn-primary" onclick="submitAttendanceStatus('attended')" style="min-height:44px; width:100%;">Mark Attended</button>
+        <button class="btn btn-secondary" onclick="submitAttendanceStatus('missed')" style="min-height:44px; width:100%;">Mark Missed</button>
+        <button class="btn btn-secondary" onclick="openRescheduleModalFromSheet()" style="min-height:44px; width:100%;">Reschedule Session</button>
+        <button class="btn btn-danger" onclick="closeAttendanceSheet()" style="min-height:44px; width:100%; background:rgba(239, 68, 68, 0.1); color:#ef4444; border:1px solid rgba(239, 68, 68, 0.2);">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reschedule Pick Date/Time Modal -->
+  <div class="modal-overlay" id="rescheduleFormModal">
+    <div class="modal-content" style="max-width:380px; border-radius:16px;">
+      <div class="modal-header">
+        <h2>Reschedule Workout Slot</h2>
+        <button class="close-btn" onclick="closeRescheduleModal()">&times;</button>
+      </div>
+      <div class="modal-body" style="padding:16px 20px;">
+        <div class="form-group">
+          <label for="reschedNewDate">Select New Date</label>
+          <input type="date" id="reschedNewDate" class="form-control" required>
+        </div>
+        <div class="form-group" style="margin-top:12px;">
+          <label for="reschedNewTime">Select New Time</label>
+          <input type="time" id="reschedNewTime" class="form-control" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeRescheduleModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitRescheduleAction()">Confirm Reschedule</button>
+      </div>
     </div>
   </div>
 

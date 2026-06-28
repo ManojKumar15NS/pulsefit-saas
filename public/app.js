@@ -316,37 +316,107 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- 5. DASHBOARD DETAILS POPUP CONTROLLER ---
+  let currentActiveSession = null;
+
   window.viewSessionDetails = (sessionObj, statusClass) => {
-    document.getElementById('sessDetClientName').textContent = sessionObj.client_name;
+    currentActiveSession = sessionObj;
     
-    const days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    document.getElementById('sessDetDay').textContent = days[sessionObj.day_of_week] || 'Monday';
-    
-    // Format Time to 12h
     const hour = parseInt(sessionObj.session_time.split(':')[0]);
     const mins = sessionObj.session_time.split(':')[1];
     const ampm = hour < 12 ? 'AM' : 'PM';
     let displayHour = hour % 12;
     if (displayHour === 0) displayHour = 12;
     const time12h = displayHour + ':' + mins + ' ' + ampm;
-    document.getElementById('sessDetTime').textContent = time12h;
-    
-    document.getElementById('sessDetNotes').textContent = sessionObj.notes || 'Workout Session (No notes)';
-    
-    const statusBadge = document.getElementById('sessDetStatusBadge');
-    let labelText = 'Upcoming';
-    if (statusClass === 'status-completed') labelText = 'Completed';
-    else if (statusClass === 'status-missed') labelText = 'Missed / Special';
-    statusBadge.textContent = labelText;
-    statusBadge.className = `badge ${statusClass}`;
 
-    document.getElementById('btnCancelSessionAction').onclick = () => {
-      closeSessionDetailModal();
-      executeCancelSession(sessionObj.id);
-    };
+    const dateText = sessionObj.session_date ? new Date(sessionObj.session_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    document.getElementById('attendanceSheetClientName').textContent = sessionObj.client_name;
+    document.getElementById('attendanceSheetTime').textContent = `${dateText} @ ${time12h}`;
 
-    document.getElementById('sessionDetailModal').classList.add('active');
-    lucide.createIcons();
+    if (window.innerWidth < 768) {
+      document.getElementById('attendanceSheetOverlay').classList.add('active');
+    } else {
+      document.getElementById('sessDetClientName').textContent = sessionObj.client_name;
+      const days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      document.getElementById('sessDetDay').textContent = days[sessionObj.day_of_week] || 'Monday';
+      document.getElementById('sessDetTime').textContent = time12h;
+      document.getElementById('sessDetNotes').textContent = sessionObj.notes || 'Workout Session';
+      
+      const statusBadge = document.getElementById('sessDetStatusBadge');
+      let labelText = 'Upcoming';
+      if (sessionObj.status === 'attended') labelText = 'Completed';
+      else if (sessionObj.status === 'missed') labelText = 'Missed / Special';
+      else if (sessionObj.status === 'rescheduled') labelText = 'Rescheduled';
+      statusBadge.textContent = labelText;
+
+      document.getElementById('btnCancelSessionAction').onclick = () => {
+        closeSessionDetailModal();
+        executeCancelSession(sessionObj.id);
+      };
+
+      document.getElementById('sessionDetailModal').classList.add('active');
+      lucide.createIcons();
+    }
+  };
+
+  window.closeAttendanceSheet = () => {
+    document.getElementById('attendanceSheetOverlay').classList.remove('active');
+  };
+
+  window.submitAttendanceStatus = async (status) => {
+    if (!currentActiveSession) return;
+    try {
+      const res = await fetch(`/api/schedule/${currentActiveSession.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        showToast(`Attendance updated: ${status}`);
+        closeAttendanceSheet();
+        loadCalendarData();
+        loadDashboardData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  window.openRescheduleModalFromSheet = () => {
+    if (!currentActiveSession) return;
+    closeAttendanceSheet();
+    document.getElementById('reschedNewDate').value = currentActiveSession.session_date || new Date().toISOString().split('T')[0];
+    document.getElementById('reschedNewTime').value = currentActiveSession.session_time.substring(0, 5);
+    document.getElementById('rescheduleFormModal').classList.add('active');
+  };
+
+  window.closeRescheduleModal = () => {
+    document.getElementById('rescheduleFormModal').classList.remove('active');
+  };
+
+  window.submitRescheduleAction = async () => {
+    if (!currentActiveSession) return;
+    const newDate = document.getElementById('reschedNewDate').value;
+    const newTime = document.getElementById('reschedNewTime').value;
+    
+    try {
+      const res = await fetch(`/api/schedule/${currentActiveSession.id}/reschedule`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_date: newDate,
+          session_time: newTime,
+          notes: 'Rescheduled workout session.'
+        })
+      });
+      if (res.ok) {
+        showToast('Session rescheduled successfully!');
+        closeRescheduleModal();
+        loadCalendarData();
+        loadDashboardData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   window.closeSessionDetailModal = () => {
@@ -454,11 +524,127 @@ document.addEventListener('DOMContentLoaded', () => {
   const clientFormModal = document.getElementById('clientFormModal');
   const clientForm = document.getElementById('clientForm');
 
+  let currentFormSelectedPackage = '';
+  let currentFormSelectedDays = [];
+
+  window.selectFormPackage = (type, price) => {
+    currentFormSelectedPackage = type;
+    document.getElementById('clientPackageType').value = type;
+    document.getElementById('clientAmountPaid').value = price;
+    
+    document.querySelectorAll('.package-card').forEach(card => {
+      card.style.background = 'transparent';
+      card.style.borderColor = 'var(--border-color)';
+    });
+    const activeCard = document.getElementById('pkgCard' + type);
+    if (activeCard) {
+      activeCard.style.background = 'rgba(76, 175, 80, 0.15)';
+      activeCard.style.borderColor = 'var(--primary)';
+    }
+
+    document.getElementById('preferredDaysSection').style.display = 'block';
+    document.getElementById('preferredTimeSection').style.display = 'block';
+
+    let suggestedDays = [1, 3, 5];
+    if (type === 'Gold') suggestedDays = [1, 2, 3, 4, 5];
+    else if (type === 'Platinum') suggestedDays = [1, 2, 3, 4, 5, 6, 7];
+
+    currentFormSelectedDays = suggestedDays;
+    updateFormDaysUI();
+    validateSessionCounts();
+  };
+
+  window.toggleFormDay = (dayNum) => {
+    if (currentFormSelectedDays.includes(dayNum)) {
+      currentFormSelectedDays = currentFormSelectedDays.filter(d => d !== dayNum);
+    } else {
+      currentFormSelectedDays = [...currentFormSelectedDays, dayNum].sort((a, b) => a - b);
+    }
+    updateFormDaysUI();
+    validateSessionCounts();
+  };
+
+  function updateFormDaysUI() {
+    document.querySelectorAll('.day-pill-btn').forEach(btn => {
+      const dNum = parseInt(btn.getAttribute('data-day'));
+      if (currentFormSelectedDays.includes(dNum)) {
+        btn.style.background = 'var(--primary)';
+        btn.style.color = '#07090e';
+        btn.style.borderColor = 'var(--primary)';
+      } else {
+        btn.style.background = 'transparent';
+        btn.style.color = 'var(--text-secondary)';
+        btn.style.borderColor = 'var(--border-color)';
+      }
+    });
+  }
+
+  function validateSessionCounts() {
+    if (!currentFormSelectedPackage) return;
+    let target = 12;
+    if (currentFormSelectedPackage === 'Gold') target = 20;
+    else if (currentFormSelectedPackage === 'Platinum') target = 30;
+
+    const computedTotal = Math.round(currentFormSelectedDays.length * 4.3);
+    const warningEl = document.getElementById('schedulePatternWarning');
+    if (computedTotal !== target) {
+      warningEl.textContent = `Warning: Selected days will schedule ~${computedTotal} workouts (Requires ${target}).`;
+    } else {
+      warningEl.textContent = '';
+    }
+  }
+
+  function updateBmiCategoryLabel(bmiValue) {
+    const num = parseFloat(bmiValue);
+    const label = document.getElementById('clientBmiCategoryLabel');
+    if (!label) return;
+    if (isNaN(num) || num <= 0) {
+      label.textContent = '';
+      return;
+    }
+    if (num < 18.5) label.textContent = 'Underweight';
+    else if (num < 25) label.textContent = 'Normal';
+    else if (num < 30) label.textContent = 'Overweight';
+    else label.textContent = 'Obese';
+  }
+
+  const clientBmiInput = document.getElementById('clientBmi');
+  if (clientBmiInput) {
+    clientBmiInput.addEventListener('input', (e) => {
+      updateBmiCategoryLabel(e.target.value);
+    });
+  }
+
+  const clientStartDateInput = document.getElementById('clientStartDate');
+  if (clientStartDateInput) {
+    clientStartDateInput.addEventListener('change', (e) => {
+      const val = e.target.value;
+      if (val) {
+        const d = new Date(val);
+        d.setMonth(d.getMonth() + 1);
+        document.getElementById('clientEndDate').value = d.toISOString().split('T')[0];
+      }
+    });
+  }
+
   window.openAddClientModal = () => {
     document.getElementById('clientModalTitle').textContent = 'Add New Client';
     document.getElementById('formClientId').value = '';
     clientForm.reset();
     document.getElementById('clientJoinDate').value = new Date().toISOString().split('T')[0];
+    
+    currentFormSelectedPackage = '';
+    currentFormSelectedDays = [];
+    document.getElementById('clientPackageType').value = '';
+    document.getElementById('clientBmiCategoryLabel').textContent = '';
+    document.querySelectorAll('.package-card').forEach(card => {
+      card.style.background = 'transparent';
+      card.style.borderColor = 'var(--border-color)';
+    });
+    document.getElementById('preferredDaysSection').style.display = 'none';
+    document.getElementById('preferredTimeSection').style.display = 'none';
+    document.getElementById('schedulePatternWarning').textContent = '';
+
     clientFormModal.classList.add('active');
   };
 
@@ -477,6 +663,16 @@ document.addEventListener('DOMContentLoaded', () => {
       height: parseFloat(document.getElementById('clientHeight').value),
       weight: parseFloat(document.getElementById('clientWeight').value),
       body_fat: parseFloat(document.getElementById('clientBodyFat').value),
+      bmi: parseFloat(document.getElementById('clientBmi').value),
+      visceral_fat: parseFloat(document.getElementById('clientVisceralFat').value || 0),
+      muscle_mass: parseFloat(document.getElementById('clientMuscleMass').value || 0),
+      water_level: parseFloat(document.getElementById('clientWaterLevel').value || 0),
+      package_type: document.getElementById('clientPackageType').value || null,
+      amount_paid: parseFloat(document.getElementById('clientAmountPaid').value || 0),
+      start_date: document.getElementById('clientStartDate').value || null,
+      end_date: document.getElementById('clientEndDate').value || null,
+      preferred_days: currentFormSelectedDays.join(',') || null,
+      preferred_time: document.getElementById('clientPreferredTime').value || null,
       phone: document.getElementById('clientPhone').value,
       email: document.getElementById('clientEmail').value,
       join_date: document.getElementById('clientJoinDate').value,
@@ -628,12 +824,46 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('clientHeight').value = client.height;
     document.getElementById('clientWeight').value = client.weight;
     document.getElementById('clientBodyFat').value = client.body_fat;
+    document.getElementById('clientBmi').value = client.bmi || '';
+    document.getElementById('clientVisceralFat').value = client.visceral_fat || '';
+    document.getElementById('clientMuscleMass').value = client.muscle_mass || '';
+    document.getElementById('clientWaterLevel').value = client.water_level || '';
     document.getElementById('clientPhone').value = client.phone;
     document.getElementById('clientEmail').value = client.email;
     document.getElementById('clientJoinDate').value = client.join_date;
     document.getElementById('clientStatus').value = client.status;
     document.getElementById('clientMedical').value = client.medical_conditions;
     document.getElementById('clientReportFile').value = '';
+
+    // Load package values
+    currentFormSelectedPackage = client.package_type || '';
+    document.getElementById('clientPackageType').value = currentFormSelectedPackage;
+    document.getElementById('clientAmountPaid').value = client.amount_paid || '';
+    document.getElementById('clientStartDate').value = client.start_date || '';
+    document.getElementById('clientEndDate').value = client.end_date || '';
+    document.getElementById('clientPreferredTime').value = client.preferred_time || '07:00';
+    currentFormSelectedDays = client.preferred_days ? client.preferred_days.split(',').map(Number) : [];
+
+    document.querySelectorAll('.package-card').forEach(card => {
+      card.style.background = 'transparent';
+      card.style.borderColor = 'var(--border-color)';
+    });
+    if (currentFormSelectedPackage) {
+      const activeCard = document.getElementById('pkgCard' + currentFormSelectedPackage);
+      if (activeCard) {
+        activeCard.style.background = 'rgba(76, 175, 80, 0.15)';
+        activeCard.style.borderColor = 'var(--primary)';
+      }
+      document.getElementById('preferredDaysSection').style.display = 'block';
+      document.getElementById('preferredTimeSection').style.display = 'block';
+      updateFormDaysUI();
+      validateSessionCounts();
+    } else {
+      document.getElementById('preferredDaysSection').style.display = 'none';
+      document.getElementById('preferredTimeSection').style.display = 'none';
+    }
+
+    updateBmiCategoryLabel(client.bmi);
 
     clientFormModal.classList.add('active');
   }
@@ -1194,6 +1424,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
           const slotSessions = calendarSessionsCache.filter(s => {
             const sHour = parseInt(s.session_time.split(':')[0]);
+            if (s.session_date) {
+              return s.session_date === colDateStr && sHour === hour;
+            }
             return s.day_of_week == dayIndex && sHour === hour;
           });
 
@@ -1201,34 +1434,39 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             const themeClass = idx % 2 === 1 ? ' sec-theme' : '';
             
-            // Dynamic Time-Based Status Calculations (Calmendar style indicator)
+            // Dynamic Time-Based Status Calculations
             let statusClass = 'status-upcoming';
-            if (s.day_of_week < currentDayIndex) {
-              statusClass = 'status-completed';
-            } else if (s.day_of_week == currentDayIndex) {
-              const sHour = parseInt(s.session_time.split(':')[0]);
-              const sMin = parseInt(s.session_time.split(':')[1]);
-              if (sHour < currentHour || (sHour === currentHour && sMin <= currentMinute)) {
+            if (s.status) {
+              if (s.status === 'attended') statusClass = 'status-completed';
+              else if (s.status === 'missed') statusClass = 'status-missed';
+              else if (s.status === 'rescheduled') statusClass = 'status-rescheduled';
+            } else {
+              if (s.day_of_week < currentDayIndex) {
                 statusClass = 'status-completed';
-              } else {
-                statusClass = 'status-upcoming';
+              } else if (s.day_of_week == currentDayIndex) {
+                const sHour = parseInt(s.session_time.split(':')[0]);
+                const sMin = parseInt(s.session_time.split(':')[1]);
+                if (sHour < currentHour || (sHour === currentHour && sMin <= currentMinute)) {
+                  statusClass = 'status-completed';
+                }
               }
-            }
-
-            if (s.notes && (s.notes.toLowerCase().includes('missed') || s.notes.toLowerCase().includes('injury'))) {
-              statusClass = 'status-missed';
             }
 
             const colorIndex = s.client_id % 6;
             card.className = `timetable-session-card card-theme-${colorIndex} ${statusClass}` + themeClass;
             
-            // Render card with initials avatar tag
+            // Render card with initials avatar tag and original date strikethrough
+            const originalDateLabel = s.original_date && s.original_date !== s.session_date 
+              ? `<span style="font-size:8px; text-decoration:line-through; opacity:0.6; color:var(--text-secondary); display:block; margin-top:2px;">Prev: ${s.original_date}</span>` 
+              : '';
+
             const clientInitials = s.client_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
             card.innerHTML = `
               <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:4px;">
                 <div style="overflow:hidden;">
                   <h4>${s.client_name}</h4>
                   <p>${s.notes || 'Workout Session'}</p>
+                  ${originalDateLabel}
                 </div>
                 <div class="sess-client-initial" style="font-size:8px; font-weight:700; width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; color:var(--text-primary); flex-shrink:0;">${clientInitials}</div>
               </div>
