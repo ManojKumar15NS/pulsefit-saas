@@ -1,5 +1,5 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
@@ -29,180 +29,151 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Database initialization (Auto-detect Glitch persistent .data directory)
-const dbFolder = process.env.PROJECT_DOMAIN ? path.join(__dirname, '.data') : __dirname;
-if (process.env.PROJECT_DOMAIN && !fs.existsSync(dbFolder)) {
-  fs.mkdirSync(dbFolder, { recursive: true });
-}
-const dbPath = path.join(dbFolder, 'gym_tracker.db');
-const db = new sqlite3.Database(dbPath);
+// Database connection pool setup (Auto-detect DATABASE_URL)
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/gym_tracker',
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
+});
 
-// Promisified database helpers
-const dbRun = (query, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.run(query, params, function(err) {
-      if (err) reject(err);
-      else resolve(this);
-    });
-  });
+// Dynamic Query translator helper (SQLite parameter ? to PostgreSQL $1, $2)
+const translateQuery = (query) => {
+  let index = 1;
+  let pgQuery = query.replace(/\?/g, () => `$${index++}`);
+  
+  // Clean SQLite specific keywords
+  pgQuery = pgQuery.replace(/INTEGER PRIMARY KEY AUTOINCREMENT/gi, 'SERIAL PRIMARY KEY')
+                   .replace(/AUTOINCREMENT/gi, '');
+                   
+  // Ensure primary keys use SERIAL structure
+  if (pgQuery.trim().toUpperCase().startsWith('INSERT') && !pgQuery.toUpperCase().includes('RETURNING')) {
+    pgQuery += ' RETURNING id';
+  }
+  return pgQuery;
 };
 
-const dbAll = (query, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.all(query, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
+// Promisified database helpers to mimic SQLite on PostgreSQL
+const dbRun = async (query, params = []) => {
+  const pgQuery = translateQuery(query);
+  const res = await pool.query(pgQuery, params);
+  return { lastID: res.rows[0]?.id };
 };
 
-const dbGet = (query, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.get(query, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
+const dbAll = async (query, params = []) => {
+  const pgQuery = translateQuery(query);
+  const res = await pool.query(pgQuery, params);
+  return res.rows;
+};
+
+const dbGet = async (query, params = []) => {
+  const pgQuery = translateQuery(query);
+  const res = await pool.query(pgQuery, params);
+  return res.rows[0];
 };
 
 // Database schema setup
-db.serialize(async () => {
-  db.run('PRAGMA foreign_keys = ON');
+(async () => {
+  try {
+    // Create Tables
+    await dbRun(`CREATE TABLE IF NOT EXISTS trainers (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(255) UNIQUE NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      fullname VARCHAR(255) NOT NULL
+    )`);
 
-  // Trainers Table
-  db.run(`CREATE TABLE IF NOT EXISTS trainers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    fullname TEXT NOT NULL
-  )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS clients (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      age INTEGER NOT NULL,
+      gender VARCHAR(50) NOT NULL,
+      height REAL NOT NULL,
+      weight REAL NOT NULL,
+      body_fat REAL NOT NULL,
+      bmi REAL NOT NULL,
+      medical_conditions TEXT,
+      fitness_goal VARCHAR(255) NOT NULL,
+      phone VARCHAR(50) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      status VARCHAR(50) DEFAULT 'active',
+      join_date VARCHAR(50) NOT NULL,
+      trainer_id INTEGER REFERENCES trainers(id) ON DELETE CASCADE
+    )`);
 
-  // Clients Table (Updated with trainer_id FK)
-  db.run(`CREATE TABLE IF NOT EXISTS clients (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    age INTEGER NOT NULL,
-    gender TEXT NOT NULL,
-    height REAL NOT NULL,
-    weight REAL NOT NULL,
-    body_fat REAL NOT NULL,
-    bmi REAL NOT NULL,
-    medical_conditions TEXT,
-    fitness_goal TEXT NOT NULL,
-    phone TEXT NOT NULL,
-    email TEXT NOT NULL,
-    status TEXT DEFAULT 'active',
-    join_date TEXT NOT NULL,
-    trainer_id INTEGER REFERENCES trainers(id) ON DELETE CASCADE
-  )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS progress_logs (
+      id SERIAL PRIMARY KEY,
+      client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+      date VARCHAR(50) NOT NULL,
+      weight REAL NOT NULL,
+      body_fat REAL NOT NULL,
+      bmi REAL NOT NULL,
+      notes TEXT
+    )`);
 
-  // Progress Logs Table
-  db.run(`CREATE TABLE IF NOT EXISTS progress_logs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    client_id INTEGER,
-    date TEXT NOT NULL,
-    weight REAL NOT NULL,
-    body_fat REAL NOT NULL,
-    bmi REAL NOT NULL,
-    notes TEXT,
-    FOREIGN KEY(client_id) REFERENCES clients(id) ON DELETE CASCADE
-  )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS reports (
+      id SERIAL PRIMARY KEY,
+      client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+      file_name VARCHAR(255) NOT NULL,
+      file_path VARCHAR(255) NOT NULL,
+      upload_date VARCHAR(50) NOT NULL
+    )`);
 
-  // Reports Table
-  db.run(`CREATE TABLE IF NOT EXISTS reports (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    client_id INTEGER,
-    file_name TEXT NOT NULL,
-    file_path TEXT NOT NULL,
-    upload_date TEXT NOT NULL,
-    FOREIGN KEY(client_id) REFERENCES clients(id) ON DELETE CASCADE
-  )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS sessions (
+      id SERIAL PRIMARY KEY,
+      client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+      day_of_week INTEGER NOT NULL,
+      session_time VARCHAR(50) NOT NULL,
+      notes TEXT
+    )`);
 
-  // Sessions Table
-  db.run(`CREATE TABLE IF NOT EXISTS sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    client_id INTEGER,
-    day_of_week INTEGER NOT NULL,
-    session_time TEXT NOT NULL,
-    notes TEXT,
-    FOREIGN KEY(client_id) REFERENCES clients(id) ON DELETE CASCADE
-  )`);
+    await dbRun(`CREATE TABLE IF NOT EXISTS messages (
+      id SERIAL PRIMARY KEY,
+      client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+      message_text TEXT NOT NULL,
+      sent_date VARCHAR(50) NOT NULL,
+      template_type VARCHAR(255)
+    )`);
 
-  // Messages Table
-  db.run(`CREATE TABLE IF NOT EXISTS messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    client_id INTEGER,
-    message_text TEXT NOT NULL,
-    sent_date TEXT NOT NULL,
-    template_type TEXT,
-    FOREIGN KEY(client_id) REFERENCES clients(id) ON DELETE CASCADE
-  )`);
+    // Seed default trainer and clients if empty
+    const trainersCount = await dbGet("SELECT COUNT(*) as count FROM trainers");
+    if (trainersCount && parseInt(trainersCount.count) === 0) {
+      console.log("Seeding initial gym database in PostgreSQL...");
+      const defaultHash = crypto.createHash('sha256').update(SECRET_PASSWORD).digest('hex');
+      const defaultTrainer = await dbRun(
+        `INSERT INTO trainers (username, password_hash, fullname) VALUES (?, ?, ?)`,
+        ['trainer123', defaultHash, 'Coach Manoj']
+      );
+      const tId = defaultTrainer.lastID;
 
-  // Dynamic Column Migration Helper
-  db.all("PRAGMA table_info(clients)", (err, columns) => {
-    if (!err && columns.length > 0) {
-      const hasTrainerId = columns.some(col => col.name === 'trainer_id');
-      if (!hasTrainerId) {
-        db.run("ALTER TABLE clients ADD COLUMN trainer_id INTEGER REFERENCES trainers(id)", (alterErr) => {
-          if (!alterErr) {
-            console.log("Migration: Added trainer_id column to clients table.");
-            // Seed default trainer
-            const defaultHash = crypto.createHash('sha256').update(SECRET_PASSWORD).digest('hex');
-            db.run("INSERT OR IGNORE INTO trainers (id, username, password_hash, fullname) VALUES (?, ?, ?, ?)", [1, 'trainer123', defaultHash, 'Coach Manoj'], (insErr) => {
-              if (!insErr) {
-                db.run("UPDATE clients SET trainer_id = 1 WHERE trainer_id IS NULL");
-                console.log("Migration: Associated existing clients with default trainer.");
-              }
-            });
-          }
-        });
-      }
+      // Insert Clients
+      const client1 = await dbRun(
+        `INSERT INTO clients (name, age, gender, height, weight, body_fat, bmi, medical_conditions, fitness_goal, phone, email, status, join_date, trainer_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ['John Doe', 28, 'Male', 180, 85.0, 22.0, 26.2, 'Slight lower back tightness', 'Muscle Gain', '+15550199', 'john.doe@example.com', 'active', '2026-05-01', tId]
+      );
+      const c1Id = client1.lastID;
+
+      const client2 = await dbRun(
+        `INSERT INTO clients (name, age, gender, height, weight, body_fat, bmi, medical_conditions, fitness_goal, phone, email, status, join_date, trainer_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ['Jane Smith', 32, 'Female', 165, 70.0, 30.0, 25.7, 'None', 'Weight Loss', '+15550288', 'jane.smith@example.com', 'active', '2026-05-15', tId]
+      );
+      const c2Id = client2.lastID;
+
+      // Insert Progress Logs
+      await dbRun(`INSERT INTO progress_logs (client_id, date, weight, body_fat, bmi, notes) VALUES (?, ?, ?, ?, ?, ?)`, [c1Id, '2026-05-01', 85.0, 22.0, 26.2, 'Starting weight assessment.']);
+      await dbRun(`INSERT INTO progress_logs (client_id, date, weight, body_fat, bmi, notes) VALUES (?, ?, ?, ?, ?, ?)`, [c1Id, '2026-05-15', 84.2, 21.2, 26.0, 'Protein target hit.']);
+      await dbRun(`INSERT INTO progress_logs (client_id, date, weight, body_fat, bmi, notes) VALUES (?, ?, ?, ?, ?, ?)`, [c2Id, '2026-05-15', 70.0, 30.0, 25.7, 'First evaluation session.']);
+
+      // Seed Sessions
+      await dbRun(`INSERT INTO sessions (client_id, day_of_week, session_time, notes) VALUES (?, ?, ?, ?)`, [c1Id, 1, '08:30', 'Leg Day focus']);
+      await dbRun(`INSERT INTO sessions (client_id, day_of_week, session_time, notes) VALUES (?, ?, ?, ?)`, [c2Id, 1, '10:00', 'Core circuit']);
+
+      console.log("PostgreSQL database seeded successfully!");
     }
-  });
-
-  // Seed default data if database has no trainers
-  db.get("SELECT COUNT(*) as count FROM trainers", async (err, row) => {
-    if (!err && row.count === 0) {
-      console.log("Seeding initial gym database...");
-      try {
-        const defaultHash = crypto.createHash('sha256').update(SECRET_PASSWORD).digest('hex');
-        const defaultTrainer = await dbRun(
-          `INSERT INTO trainers (username, password_hash, fullname) VALUES (?, ?, ?)`,
-          ['trainer123', defaultHash, 'Coach Manoj']
-        );
-        const tId = defaultTrainer.lastID;
-
-        // Insert Clients
-        const client1 = await dbRun(
-          `INSERT INTO clients (name, age, gender, height, weight, body_fat, bmi, medical_conditions, fitness_goal, phone, email, status, join_date, trainer_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          ['John Doe', 28, 'Male', 180, 85.0, 22.0, 26.2, 'Slight lower back tightness', 'Muscle Gain', '+15550199', 'john.doe@example.com', 'active', '2026-05-01', tId]
-        );
-        const c1Id = client1.lastID;
-
-        const client2 = await dbRun(
-          `INSERT INTO clients (name, age, gender, height, weight, body_fat, bmi, medical_conditions, fitness_goal, phone, email, status, join_date, trainer_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          ['Jane Smith', 32, 'Female', 165, 70.0, 30.0, 25.7, 'None', 'Weight Loss', '+15550288', 'jane.smith@example.com', 'active', '2026-05-15', tId]
-        );
-        const c2Id = client2.lastID;
-
-        // Insert Progress Logs
-        await dbRun(`INSERT INTO progress_logs (client_id, date, weight, body_fat, bmi, notes) VALUES (?, ?, ?, ?, ?, ?)`, [c1Id, '2026-05-01', 85.0, 22.0, 26.2, 'Starting weight assessment.']);
-        await dbRun(`INSERT INTO progress_logs (client_id, date, weight, body_fat, bmi, notes) VALUES (?, ?, ?, ?, ?, ?)`, [c1Id, '2026-05-15', 84.2, 21.2, 26.0, 'Protein target hit.']);
-        await dbRun(`INSERT INTO progress_logs (client_id, date, weight, body_fat, bmi, notes) VALUES (?, ?, ?, ?, ?, ?)`, [c2Id, '2026-05-15', 70.0, 30.0, 25.7, 'First evaluation session.']);
-
-        // Seed Sessions
-        await dbRun(`INSERT INTO sessions (client_id, day_of_week, session_time, notes) VALUES (?, ?, ?, ?)`, [c1Id, 1, '08:30', 'Leg Day focus']);
-        await dbRun(`INSERT INTO sessions (client_id, day_of_week, session_time, notes) VALUES (?, ?, ?, ?)`, [c2Id, 1, '10:00', 'Core circuit']);
-
-        console.log("Database seeded successfully!");
-      } catch (seedErr) {
-        console.error("Error seeding database:", seedErr);
-      }
-    }
-  });
-});
+  } catch (err) {
+    console.error("PostgreSQL database initialization error:", err.message);
+  }
+})();
 
 // Middleware
 app.use(express.json());
@@ -232,7 +203,7 @@ app.post('/api/login', async (req, res) => {
     }
     // Fallback for default config if trainers are not present
     const trainersCount = await dbGet("SELECT COUNT(*) as count FROM trainers");
-    if (trainersCount.count === 0 && password === SECRET_PASSWORD && username === 'trainer123') {
+    if (trainersCount && parseInt(trainersCount.count) === 0 && password === SECRET_PASSWORD && username === 'trainer123') {
       const defaultHash = crypto.createHash('sha256').update(SECRET_PASSWORD).digest('hex');
       const defaultTrainer = await dbRun("INSERT INTO trainers (username, password_hash, fullname) VALUES (?, ?, ?)", ['trainer123', defaultHash, 'Coach Manoj']);
       res.cookie('trainer_session', defaultTrainer.lastID.toString(), { httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 });
@@ -358,15 +329,15 @@ app.get('/api/dashboard-stats', async (req, res) => {
 
     res.json({
       stats: {
-        total: totalClients.count,
-        active: activeClients.count,
+        total: parseInt(totalClients.count || 0),
+        active: parseInt(activeClients.count || 0),
         weightLossCount: losingWeight
       },
       goals: {
-        weightLoss: goalWeightLoss,
-        weightGain: goalWeightGain,
-        muscleGain: goalMuscleGain,
-        maintenance: goalMaintenance
+        weightLoss: parseInt(goalWeightLoss || 0),
+        weightGain: parseInt(goalWeightGain || 0),
+        muscleGain: parseInt(goalMuscleGain || 0),
+        maintenance: parseInt(goalMaintenance || 0)
       },
       inactiveAlerts
     });
@@ -672,5 +643,5 @@ app.post('/api/messages', async (req, res) => {
 
 // Start Server
 app.listen(PORT, () => {
-  console.log(`Gym Trainer Server is running on http://localhost:${PORT}`);
+  console.log(`Gym Trainer Server (PostgreSQL) is running on port ${PORT}`);
 });
