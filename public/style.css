@@ -632,27 +632,27 @@ body {
 }
 
 /* Client Dynamic Rotating Theme Colors */
-.timetable-session-card.card-theme-0 {
+.card-theme-0 {
   background: #3b82f6 !important; /* Blue */
   border-left-color: #1d4ed8 !important;
 }
-.timetable-session-card.card-theme-1 {
+.card-theme-1 {
   background: #10b981 !important; /* Emerald Green */
   border-left-color: #047857 !important;
 }
-.timetable-session-card.card-theme-2 {
+.card-theme-2 {
   background: #8b5cf6 !important; /* Purple */
   border-left-color: #6d28d9 !important;
 }
-.timetable-session-card.card-theme-3 {
+.card-theme-3 {
   background: #f59e0b !important; /* Amber Orange */
   border-left-color: #b45309 !important;
 }
-.timetable-session-card.card-theme-4 {
+.card-theme-4 {
   background: #ec4899 !important; /* Pink */
   border-left-color: #be185d !important;
 }
-.timetable-session-card.card-theme-5 {
+.card-theme-5 {
   background: #06b6d4 !important; /* Cyan */
   border-left-color: #0e7490 !important;
 }
